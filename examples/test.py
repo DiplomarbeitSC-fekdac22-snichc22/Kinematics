@@ -1,7 +1,7 @@
-from datetime import datetime
 import platform
 import socket
 import sys
+from datetime import datetime
 
 
 def main() -> None:
