@@ -1,0 +1,120 @@
+# CAD-derived robot geometry for the kinematic model.
+# Units: millimetres unless stated otherwise.
+# Source workbook: RobotKinematicMeasurements.xlsx
+
+schema_version = "1.0"
+units = "mm"
+source_file = "RobotKinematicMeasurements.xlsx"
+coordinate_source = "STEP geometry extracted from V5Baugruppe_20260701.step"
+
+[cad_axes]
+vertical = "STEP_Y"
+joint_axis_lateral = "STEP_X"
+radial_forward = "negative_STEP_Z"
+ik_plane = "STEP_Y_STEP_Z"
+r_forward_formula = "J2_STEP_Z - STEP_Z"
+y_vertical_formula = "STEP_Y - J2_STEP_Y"
+notes = "Use this only for CAD-derived geometry. Runtime targets should be passed in robot-base coordinates."
+
+[base_axis]
+confidence = "medium"
+direction_step = [0.0, 1.0, 0.0]
+point_on_axis_step_mm = [0.646, 8.983, 1000.0]
+point_at_shoulder_height_step_mm = [0.646, 66.733, 1000.0]
+meaning = "Central rotating-base axis inferred from the RotatingBase part."
+
+[joint_centers_step_mm.J1]
+name = "base_axis_at_shoulder_height"
+role = "Base rotation axis reference projected to shoulder height"
+x = 0.646
+y = 66.733
+z = 1000.0
+confidence = "medium"
+
+[joint_centers_step_mm.J2]
+name = "shoulder_axis"
+role = "Shoulder servo output shaft center"
+x = 14.423
+y = 66.733
+z = 1000.0
+confidence = "high"
+
+[joint_centers_step_mm.J3]
+name = "elbow_axis"
+role = "Elbow servo output shaft center"
+x = 22.423
+y = 266.733
+z = 1000.0
+confidence = "high"
+
+[joint_centers_step_mm.J4]
+name = "wrist_axis"
+role = "Wrist servo output shaft center"
+x = 17.923
+y = 266.733
+z = 836.0
+confidence = "high"
+
+[joint_centers_step_mm.G_est]
+name = "estimated_gripper_front"
+role = "Estimated gripper-center/front point from finger-related geometry"
+x = 5.347
+y = 269.233
+z = 711.103
+confidence = "low_medium"
+
+# Same points expressed in the planar IK convention from the workbook.
+# r_forward = J2_STEP_Z - STEP_Z, y_vertical = STEP_Y - J2_STEP_Y
+[joint_centers_ik_plane_mm.J2]
+r_forward = 0.0
+y_vertical = 0.0
+
+[joint_centers_ik_plane_mm.J3]
+r_forward = 0.0
+y_vertical = 200.0
+
+[joint_centers_ik_plane_mm.J4]
+r_forward = 164.0
+y_vertical = 200.0
+
+[joint_centers_ik_plane_mm.G_est]
+r_forward = 288.897
+y_vertical = 202.5
+
+[link_lengths_mm]
+# Primary two-link IK dimensions.
+L1_shoulder_to_elbow = 200.0
+L2_elbow_to_wrist = 164.0
+
+# End-effector offset. Approximate; physically measure real gripper center before final tuning.
+Lg_wrist_to_gripper_front_est = 124.922
+Lg_wrist_to_full_bbox_tip_est = 125.652
+Lg_selected = 124.922
+Lg_selected_confidence = "low_medium"
+
+# Y-height reference options. h0 is applied to the robot/CAD Y axis, not to Z.
+h0_to_step_y0 = 66.733
+h0_to_mount_plate_top = 68.25
+h0_selected = 68.25
+h0_selected_axis = "Y"
+h0_selected_runtime_field = "y_mm"
+h0_selected_reference = "mount_plate_top"
+
+[gripper_geometry]
+front_estimate_step_mm = [5.347, 269.233, 711.103]
+finger_bbox_min_step_mm = [-37.029, 246.733, 711.103]
+finger_bbox_max_step_mm = [47.724, 291.733, 861.0]
+finger_bbox_width_x = 84.753
+small_gripper_servo_shaft_step_mm = [14.853, 268.233, 787.019]
+notes = "Bounding-box values are useful for rough collision checks, not for final gripping geometry."
+
+[reference_cad_pose_deg]
+# Approximate mathematical joint pose corresponding to the STEP assembly.
+# theta2 is measured from radial-forward horizontal; positive is upward.
+# theta3 is relative elbow angle; theta4 keeps the gripper approach approximately horizontal.
+theta1_base = 0.0
+theta2_shoulder = 90.0
+theta3_elbow = -90.0
+theta4_wrist = 0.0
+alpha_gripper_approach = 0.0
+notes = "This is a kinematic reference pose derived from the joint-center geometry, not a calibrated servo home pose."

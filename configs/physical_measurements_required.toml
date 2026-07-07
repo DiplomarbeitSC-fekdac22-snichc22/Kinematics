@@ -1,0 +1,67 @@
+# Physical measurements still required before real robot operation.
+# Copied/adapted from RobotKinematicMeasurements.xlsx.
+
+schema_version = "1.0"
+
+[[items]]
+variable = "theta_min/theta_max per joint"
+unit = "deg"
+priority = "must"
+reason = "Static CAD pose does not include servo travel limits."
+method = "Jog each joint slowly to safe mechanical limits and record angle with a protractor or inclinometer."
+
+[[items]]
+variable = "theta_home per joint"
+unit = "deg"
+priority = "must"
+reason = "STEP gives one assembly pose, not your chosen home pose."
+method = "Define a repeatable home pose and measure all joint angles."
+
+[[items]]
+variable = "pulse_min/pulse_max per servo"
+unit = "us"
+priority = "must"
+reason = "STEP geometry does not store PWM calibration."
+method = "Command conservative pulse values and expand until the safe limit is reached."
+
+[[items]]
+variable = "pulse_home per servo"
+unit = "us"
+priority = "must"
+reason = "No electrical calibration is available in CAD."
+method = "Record pulse width at chosen home pose."
+
+[[items]]
+variable = "servo direction sign"
+unit = "+1/-1"
+priority = "must"
+reason = "CAD cannot show whether increasing PWM increases or decreases the mathematical angle."
+method = "Increase pulse slightly and observe angle direction."
+
+[[items]]
+variable = "gripper open/closed pulse"
+unit = "us"
+priority = "must"
+reason = "STEP shows geometry, not servo control endpoints."
+method = "Record pulse values for fully open and reliable closed positions."
+
+[[items]]
+variable = "actual gripper opening width"
+unit = "mm"
+priority = "should"
+reason = "Bounding box is not the jaw opening."
+method = "Measure inner jaw distance open/closed with calipers."
+
+[[items]]
+variable = "object size and grip point"
+unit = "mm"
+priority = "must"
+reason = "Object is not part of STEP file."
+method = "Measure object diameter/width/height and desired grip height."
+
+[[items]]
+variable = "collision/cable limits"
+unit = "mm/deg"
+priority = "should"
+reason = "Static CAD does not show cable routing under motion."
+method = "Move arm through its range and record unsafe zones."

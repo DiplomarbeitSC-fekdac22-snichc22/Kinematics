@@ -1,0 +1,48 @@
+# Named joint poses for kinematics testing.
+# Angles are mathematical joint angles, not guaranteed real servo angles.
+# Update after measuring physical home and safe limits.
+
+schema_version = "1.0"
+units_angle = "deg"
+
+[poses.cad_reference]
+description = "Approximate pose represented by the STEP assembly geometry"
+J1_base = 0.0
+J2_shoulder = 90.0
+J3_elbow = -90.0
+J4_wrist = 0.0
+J5_gripper = 0.0
+
+[poses.home]
+description = "Provisional software home; replace with measured repeatable home pose"
+J1_base = 0.0
+J2_shoulder = 90.0
+J3_elbow = -90.0
+J4_wrist = 0.0
+J5_gripper = 0.0
+requires_measurement = true
+
+[poses.ready]
+description = "Provisional ready pose with gripper lifted away from workspace"
+J1_base = 0.0
+J2_shoulder = 75.0
+J3_elbow = -75.0
+J4_wrist = 0.0
+J5_gripper = 0.0
+requires_verification = true
+
+[poses.deposit_placeholder]
+description = "Placeholder deposit pose. Replace with deposit position from physical setup."
+J1_base = 45.0
+J2_shoulder = 70.0
+J3_elbow = -70.0
+J4_wrist = 0.0
+J5_gripper = 0.0
+requires_verification = true
+
+[gripper_commands]
+# These are pulse commands, not angles. Values must be measured.
+open_pulse_us = 1200
+closed_pulse_us = 1800
+hold_pulse_us = 1700
+requires_measurement = true

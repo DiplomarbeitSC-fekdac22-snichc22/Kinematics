@@ -1,0 +1,27 @@
+# PCA9685 PWM conversion constants for servo pulse output.
+# This is hardware-adjacent, but included because kinematics output must eventually become servo pulse/count commands.
+
+schema_version = "1.0"
+frequency_hz = 50
+resolution_counts = 4096
+period_us = 20000.0
+
+[conversion]
+formula_pulse_to_count = "round(pulse_us / period_us * resolution_counts)"
+formula_count_to_pulse = "count / resolution_counts * period_us"
+
+[examples]
+count_at_500_us = 102
+count_at_1500_us = 307
+count_at_2500_us = 512
+
+[channel_map]
+J1_base = 0
+J2_shoulder = 1
+J3_elbow = 2
+J4_wrist = 3
+J5_gripper = 4
+
+[notes]
+channel_map_status = "provisional"
+text = "Verify the actual PCA9685 channel wiring before enabling real servo output."

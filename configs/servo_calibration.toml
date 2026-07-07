@@ -1,0 +1,109 @@
+# Provisional servo calibration for kinematics output.
+# Source values: PWM hobby-servo control uses pulse widths around 500-2500 us and center around 1500 us.
+# IMPORTANT: STEP/CAD does not contain safe mechanical limits, actual servo direction, or final pulse calibration.
+# Measure these values before commanding real hardware.
+
+schema_version = "1.0"
+units_angle = "deg"
+units_pulse = "us"
+calibration_status = "provisional_not_safe_for_unattended_real_robot"
+
+[defaults]
+pwm_frequency_hz = 50
+pulse_electrical_min_us = 500
+pulse_electrical_center_us = 1500
+pulse_electrical_max_us = 2500
+# Conservative first-test pulse range. Expand only after manual verification.
+pulse_initial_safe_min_us = 1000
+pulse_initial_safe_max_us = 2000
+servo_nominal_range_deg = 270.0
+us_per_degree_nominal = 7.4074074074
+clamp_to_initial_safe_range = true
+
+[joints.J1_base]
+function = "base_rotation"
+servo_type = "unknown_existing_pwm_servo"
+pca9685_channel = 0
+kinematic_role = "theta1"
+theta_zero_deg = 0.0
+theta_home_deg = 0.0
+theta_min_deg = -90.0
+theta_max_deg = 90.0
+direction = 1
+pulse_center_us = 1500
+pulse_min_us = 1000
+pulse_max_us = 2000
+us_per_degree = 7.4074074074
+requires_physical_calibration = true
+notes = "Base servo was not reliably identified from the STEP extraction. Verify channel, direction, limits, and zero."
+
+[joints.J2_shoulder]
+function = "shoulder"
+servo_type = "Miuzei_DS3218_20kg_class"
+pca9685_channel = 1
+kinematic_role = "theta2"
+theta_zero_deg = 90.0
+theta_home_deg = 90.0
+theta_min_deg = 0.0
+theta_max_deg = 160.0
+direction = 1
+pulse_center_us = 1500
+pulse_min_us = 1000
+pulse_max_us = 2000
+us_per_degree = 7.4074074074
+requires_physical_calibration = true
+notes = "Theta zero/home uses the CAD reference pose. Confirm mathematical angle and servo pulse on the real arm."
+
+[joints.J3_elbow]
+function = "elbow"
+servo_type = "Miuzei_DS3218_20kg_class"
+pca9685_channel = 2
+kinematic_role = "theta3"
+theta_zero_deg = -90.0
+theta_home_deg = -90.0
+theta_min_deg = -150.0
+theta_max_deg = 60.0
+direction = 1
+pulse_center_us = 1500
+pulse_min_us = 1000
+pulse_max_us = 2000
+us_per_degree = 7.4074074074
+requires_physical_calibration = true
+notes = "Relative elbow angle. The sign may need to be inverted depending on mounting and IK convention."
+
+[joints.J4_wrist]
+function = "wrist_pitch"
+servo_type = "Miuzei_DS3218_20kg_class"
+pca9685_channel = 3
+kinematic_role = "theta4"
+theta_zero_deg = 0.0
+theta_home_deg = 0.0
+theta_min_deg = -120.0
+theta_max_deg = 120.0
+direction = 1
+pulse_center_us = 1500
+pulse_min_us = 1000
+pulse_max_us = 2000
+us_per_degree = 7.4074074074
+requires_physical_calibration = true
+notes = "Computed from theta4 = alpha - theta2 - theta3. Verify mechanical sign."
+
+[joints.J5_gripper]
+function = "gripper"
+servo_type = "B2122_or_existing_gripper_servo"
+pca9685_channel = 4
+kinematic_role = "gripper_command"
+# Gripper is normally controlled by calibrated pulses, not IK angle.
+theta_zero_deg = 0.0
+theta_home_deg = 0.0
+theta_min_deg = 0.0
+theta_max_deg = 1.0
+direction = 1
+pulse_center_us = 1500
+pulse_min_us = 1000
+pulse_max_us = 2000
+us_per_degree = 1.0
+pulse_open_us = 1200
+pulse_closed_us = 1800
+requires_physical_calibration = true
+notes = "Open/closed pulses are placeholders. Measure actual open and object-grip positions before use."
