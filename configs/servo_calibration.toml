@@ -107,13 +107,13 @@ pca9685_channel = 2
 # Kinematic angle represented by this joint.
 kinematic_role = "theta3"
 # Mathematical angle corresponding to the configured center/zero reference.
-theta_zero_deg = -90.0
+theta_zero_deg = 90.0
 # Provisional home angle for this joint.
-theta_home_deg = -90.0
+theta_home_deg = 90.0
 # Provisional minimum safe mathematical angle.
-theta_min_deg = -150.0
+theta_min_deg = 0.0
 # Provisional maximum safe mathematical angle.
-theta_max_deg = 60.0
+theta_max_deg = 180.0
 # Direction sign from mathematical angle to servo pulse change.
 direction = 1
 # Pulse width corresponding to the zero/center position.
@@ -127,7 +127,7 @@ us_per_degree = 7.4074074074
 # Marks that this joint's values must be measured on the real robot.
 requires_physical_calibration = true
 # Extra calibration note for this joint.
-notes = "Relative elbow angle. The sign may need to be inverted depending on mounting and IK convention."
+notes = "Side-view elbow bend angle from 2D Arm Diagram.png: 0 deg points back toward shoulder, positive rotates toward wrist. Verify servo direction."
 
 [joints.J4_wrist]
 # Physical function of this joint.

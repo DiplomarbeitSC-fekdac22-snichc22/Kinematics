@@ -1,6 +1,6 @@
 # Runtime settings for the kinematic solver only.
 # Vision should provide target coordinates already in robot-base coordinates.
-# Coordinate convention: X and Z form the horizontal plane; Y is vertical height.
+# Coordinate convention: X and Z form the horizontal plane; Y is distance downward from the top reference.
 
 # Version of this configuration file format.
 schema_version = "1.0"
@@ -20,24 +20,37 @@ planar_joints = ["J2_shoulder", "J3_elbow", "J4_wrist"]
 gripper_joint = "J5_gripper"
 # Whether the wrist-to-gripper length should be included in IK/FK calculations.
 use_gripper_offset = true
-# Whether the height offset h0 should be read from robot_geometry.toml.
+# Whether the shoulder height offset h0 should be read from robot_geometry.toml.
+# For top-down y, shoulder_y = base_mount_y - h0.
 use_h0_from_robot_geometry = true
-# Key in robot_geometry.toml that contains the selected base/shoulder height offset.
+# Key in robot_geometry.toml that contains the selected base/mounting-plate to shoulder height offset.
 selected_h0_key = "h0_selected"
 # Key in robot_geometry.toml that contains the selected wrist-to-gripper length.
 selected_Lg_key = "Lg_selected"
-# Coordinate field used as the vertical axis.
+# Coordinate field used as the vertical/top-down axis.
 vertical_axis = "y_mm"
 # Coordinate fields used as the horizontal robot-base plane.
 horizontal_plane_axes = ["x_mm", "z_mm"]
 # Formula used to compute the base rotation angle from target coordinates.
-base_angle_formula = "atan2(z_mm, x_mm)"
+base_angle_formula = "atan2(z_mm - base_z_mm, x_mm - base_x_mm)"
+
+[input_coordinates]
+# User target convention from Robot Coordinate System.pdf.
+x_axis = "left_right_mm"
+z_axis = "front_back_mm"
+y_axis = "distance_down_from_top_mm"
+# y_mm grows downward from the top reference, like a measured distance from the top.
+y_positive_direction = "down"
+# Distance from the top reference to the base/mounting plate height.
+max_height_mm = 1000.0
+# Center of the base rotation axis at the base/mounting plate height: x=0, y=max_height, z=0.
+base_rotation_axis_at_mounting_plate_mm = [0.0, 1000.0, 0.0]
 
 [ik]
 # Coordinate frame expected for inverse-kinematics input targets.
 input_frame = "robot_base"
 # Preferred IK solution when multiple arm configurations can reach a target.
-solution_preference = "elbow_down"
+solution_preference = "elbow_back"
 # Desired gripper approach angle in the planar target plane.
 # 0 deg means approximately horizontal/radial-forward approach in the current simplified model.
 default_approach_angle_deg = 0.0
@@ -49,6 +62,16 @@ reject_unreachable_targets = true
 minimum_reach_margin_mm = 5.0
 # Maximum extra distance used when checking whether targets are too far away.
 maximum_reach_margin_mm = 5.0
+
+[angle_convention]
+# Side-view convention from 2D Arm Diagram.png.
+arm_plane_forward = "toward_target_front"
+# Shoulder 0 deg points forward/horizontal; positive rotates down/back toward the elbow.
+shoulder_zero = "forward_horizontal"
+shoulder_positive = "down_to_back"
+# Elbow 0 deg points from elbow back toward the shoulder; positive rotates toward the wrist.
+elbow_zero = "toward_shoulder"
+elbow_positive = "toward_wrist"
 
 [fk]
 # Compare forward-kinematics output against observed/measured gripper positions when available.
@@ -86,6 +109,8 @@ check_pulse_limits = true
 check_reachability = true
 # Check whether target coordinates are inside the configured workspace box.
 check_workspace_bounds = true
+# Check the side-view shape from 2D Arm Diagram.png: elbow back, wrist forward.
+check_side_view_orientation = true
 
 [workspace_bounds_robot_base_mm]
 # Very rough placeholders. Replace after physical testing.
@@ -94,10 +119,10 @@ check_workspace_bounds = true
 x_min = -350.0
 # Maximum allowed X coordinate in robot-base space.
 x_max = 350.0
-# Minimum allowed vertical Y coordinate.
+# Minimum allowed Y distance downward from the top reference.
 y_min = 0.0
-# Maximum allowed vertical Y coordinate.
-y_max = 350.0
+# Maximum allowed Y distance downward from the top reference.
+y_max = 1000.0
 # Minimum allowed Z coordinate in robot-base space.
 z_min = -350.0
 # Maximum allowed Z coordinate in robot-base space.
