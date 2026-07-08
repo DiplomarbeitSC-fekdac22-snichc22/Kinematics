@@ -16,16 +16,16 @@ from __future__ import annotations
 from math import atan2, cos, degrees, hypot, radians, sin, sqrt
 from pathlib import Path
 import sys
-import tomllib
 from typing import Any
 
 ROOT = Path(__file__).resolve().parents[2]
+SRC_DIR = ROOT / "src"
+if str(SRC_DIR) not in sys.path:
+    sys.path.insert(0, str(SRC_DIR))
+
+from config.config_loader import load_config
+
 CONFIG_DIR = ROOT / "configs"
-
-
-def _load_toml(config_dir: Path, filename: str) -> dict[str, Any]:
-    with (config_dir / filename).open("rb") as file:
-        return tomllib.load(file)
 
 
 def _clamp(value: float, low: float, high: float) -> float:
@@ -51,9 +51,9 @@ def _pwm_from_angle(angle_deg: float, joint: dict[str, Any]) -> int:
 def calculate_angles(x_mm: float, y_mm: float, z_mm: float, config_dir: Path | str = CONFIG_DIR) -> dict[str, Any]:
     """Return J1/J2/J3 angles, PWM estimates, and reachability for one XYZ target."""
     config_dir = Path(config_dir)
-    geometry = _load_toml(config_dir, "robot_geometry.toml")
-    servo = _load_toml(config_dir, "servo_calibration.toml")
-    settings = _load_toml(config_dir, "kinematics_settings.toml")
+    geometry = load_config("robot_geometry.toml", config_dir)
+    servo = load_config("servo_calibration.toml", config_dir)
+    settings = load_config("kinematics_settings.toml", config_dir)
 
     links = geometry["link_lengths_mm"]
     ik = settings["ik"]
