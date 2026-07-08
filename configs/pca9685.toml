@@ -1,27 +1,43 @@
 # PCA9685 PWM conversion constants for servo pulse output.
 # This is hardware-adjacent, but included because kinematics output must eventually become servo pulse/count commands.
 
+# Version of this configuration file format.
 schema_version = "1.0"
+# PWM update frequency used by the PCA9685 board.
 frequency_hz = 50
+# Number of discrete counter values in one PWM period.
 resolution_counts = 4096
+# Duration of one complete PWM period at the configured frequency.
 period_us = 20000.0
 
 [conversion]
+# Formula for converting a servo pulse width in microseconds to a PCA9685 count value.
 formula_pulse_to_count = "round(pulse_us / period_us * resolution_counts)"
+# Formula for converting a PCA9685 count value back to pulse width in microseconds.
 formula_count_to_pulse = "count / resolution_counts * period_us"
 
 [examples]
+# Example PCA9685 count for a 500 us pulse.
 count_at_500_us = 102
+# Example PCA9685 count for a centered 1500 us pulse.
 count_at_1500_us = 307
+# Example PCA9685 count for a 2500 us pulse.
 count_at_2500_us = 512
 
 [channel_map]
+# PCA9685 channel connected to the base servo.
 J1_base = 0
+# PCA9685 channel connected to the shoulder servo.
 J2_shoulder = 1
+# PCA9685 channel connected to the elbow servo.
 J3_elbow = 2
+# PCA9685 channel connected to the wrist servo.
 J4_wrist = 3
+# PCA9685 channel connected to the gripper servo.
 J5_gripper = 4
 
 [notes]
+# Current confidence/status of the channel mapping above.
 channel_map_status = "provisional"
+# Reminder text shown to developers/operators before enabling real servo output.
 text = "Verify the actual PCA9685 channel wiring before enabling real servo output."

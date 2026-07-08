@@ -2,119 +2,197 @@
 # Units: millimetres unless stated otherwise.
 # Source workbook: RobotKinematicMeasurements.xlsx
 
+# Version of this configuration file format.
 schema_version = "1.0"
+# Unit used for all geometry values in this file.
 units = "mm"
+# Spreadsheet from which these measurements were taken.
 source_file = "RobotKinematicMeasurements.xlsx"
+# CAD/STEP source used for the extracted coordinate values.
 coordinate_source = "STEP geometry extracted from V5Baugruppe_20260701.step"
 
 [cad_axes]
+# CAD axis that points upward/vertically.
 vertical = "STEP_Y"
+# CAD axis aligned with the joint rotation shafts.
 joint_axis_lateral = "STEP_X"
+# CAD direction treated as forward/radial direction for the arm.
 radial_forward = "negative_STEP_Z"
+# CAD axes forming the 2D inverse-kinematics plane.
 ik_plane = "STEP_Y_STEP_Z"
+# Formula for converting STEP Z coordinates into radial-forward distance.
 r_forward_formula = "J2_STEP_Z - STEP_Z"
+# Formula for converting STEP Y coordinates into vertical height relative to J2.
 y_vertical_formula = "STEP_Y - J2_STEP_Y"
+# Extra note about how this CAD coordinate mapping should be used.
 notes = "Use this only for CAD-derived geometry. Runtime targets should be passed in robot-base coordinates."
 
 [base_axis]
+# Confidence level for the inferred base axis.
 confidence = "medium"
+# Direction vector of the rotating base axis in STEP coordinates.
 direction_step = [0.0, 1.0, 0.0]
+# Point located on the base axis in STEP coordinates.
 point_on_axis_step_mm = [0.646, 8.983, 1000.0]
+# Point on the base axis at approximately shoulder height.
 point_at_shoulder_height_step_mm = [0.646, 66.733, 1000.0]
+# Human-readable meaning of this inferred axis.
 meaning = "Central rotating-base axis inferred from the RotatingBase part."
 
 [joint_centers_step_mm.J1]
+# Short name for this CAD point.
 name = "base_axis_at_shoulder_height"
+# Physical/kinematic role of this CAD point.
 role = "Base rotation axis reference projected to shoulder height"
+# STEP X coordinate of the point.
 x = 0.646
+# STEP Y coordinate of the point.
 y = 66.733
+# STEP Z coordinate of the point.
 z = 1000.0
+# Confidence level for this point.
 confidence = "medium"
 
 [joint_centers_step_mm.J2]
+# Short name for this CAD point.
 name = "shoulder_axis"
+# Physical/kinematic role of this CAD point.
 role = "Shoulder servo output shaft center"
+# STEP X coordinate of the point.
 x = 14.423
+# STEP Y coordinate of the point.
 y = 66.733
+# STEP Z coordinate of the point.
 z = 1000.0
+# Confidence level for this point.
 confidence = "high"
 
 [joint_centers_step_mm.J3]
+# Short name for this CAD point.
 name = "elbow_axis"
+# Physical/kinematic role of this CAD point.
 role = "Elbow servo output shaft center"
+# STEP X coordinate of the point.
 x = 22.423
+# STEP Y coordinate of the point.
 y = 266.733
+# STEP Z coordinate of the point.
 z = 1000.0
+# Confidence level for this point.
 confidence = "high"
 
 [joint_centers_step_mm.J4]
+# Short name for this CAD point.
 name = "wrist_axis"
+# Physical/kinematic role of this CAD point.
 role = "Wrist servo output shaft center"
+# STEP X coordinate of the point.
 x = 17.923
+# STEP Y coordinate of the point.
 y = 266.733
+# STEP Z coordinate of the point.
 z = 836.0
+# Confidence level for this point.
 confidence = "high"
 
 [joint_centers_step_mm.G_est]
+# Short name for this estimated gripper point.
 name = "estimated_gripper_front"
+# Physical/kinematic role of this estimated point.
 role = "Estimated gripper-center/front point from finger-related geometry"
+# STEP X coordinate of the estimated point.
 x = 5.347
+# STEP Y coordinate of the estimated point.
 y = 269.233
+# STEP Z coordinate of the estimated point.
 z = 711.103
+# Confidence level for this estimated point.
 confidence = "low_medium"
 
 # Same points expressed in the planar IK convention from the workbook.
 # r_forward = J2_STEP_Z - STEP_Z, y_vertical = STEP_Y - J2_STEP_Y
 [joint_centers_ik_plane_mm.J2]
+# Forward/radial distance from the shoulder joint in the IK plane.
 r_forward = 0.0
+# Vertical distance from the shoulder joint in the IK plane.
 y_vertical = 0.0
 
 [joint_centers_ik_plane_mm.J3]
+# Forward/radial distance from the shoulder joint in the IK plane.
 r_forward = 0.0
+# Vertical distance from the shoulder joint in the IK plane.
 y_vertical = 200.0
 
 [joint_centers_ik_plane_mm.J4]
+# Forward/radial distance from the shoulder joint in the IK plane.
 r_forward = 164.0
+# Vertical distance from the shoulder joint in the IK plane.
 y_vertical = 200.0
 
 [joint_centers_ik_plane_mm.G_est]
+# Forward/radial distance from the shoulder joint to the estimated gripper point.
 r_forward = 288.897
+# Vertical distance from the shoulder joint to the estimated gripper point.
 y_vertical = 202.5
 
 [link_lengths_mm]
 # Primary two-link IK dimensions.
+# Length from shoulder joint to elbow joint.
 L1_shoulder_to_elbow = 200.0
+# Length from elbow joint to wrist joint.
 L2_elbow_to_wrist = 164.0
 
 # End-effector offset. Approximate; physically measure real gripper center before final tuning.
+# Estimated length from wrist joint to gripper front/center.
 Lg_wrist_to_gripper_front_est = 124.922
+# Estimated length from wrist joint to the furthest gripper bounding-box tip.
 Lg_wrist_to_full_bbox_tip_est = 125.652
+# End-effector length currently selected for runtime calculations.
 Lg_selected = 124.922
+# Confidence level for the selected end-effector length.
 Lg_selected_confidence = "low_medium"
 
 # Y-height reference options. h0 is applied to the robot/CAD Y axis, not to Z.
+# Height offset from the shoulder/base reference to STEP Y zero.
 h0_to_step_y0 = 66.733
+# Height offset from the shoulder/base reference to the mounting plate top.
 h0_to_mount_plate_top = 68.25
+# Height offset currently selected for runtime calculations.
 h0_selected = 68.25
+# Axis used by the selected height offset.
 h0_selected_axis = "Y"
+# Runtime coordinate field to which the selected h0 value applies.
 h0_selected_runtime_field = "y_mm"
+# Physical reference used for the selected h0 value.
 h0_selected_reference = "mount_plate_top"
 
 [gripper_geometry]
+# Estimated front/center point of the gripper in STEP coordinates.
 front_estimate_step_mm = [5.347, 269.233, 711.103]
+# Minimum STEP coordinates of the rough gripper/finger bounding box.
 finger_bbox_min_step_mm = [-37.029, 246.733, 711.103]
+# Maximum STEP coordinates of the rough gripper/finger bounding box.
 finger_bbox_max_step_mm = [47.724, 291.733, 861.0]
+# Width of the rough gripper/finger bounding box along the STEP X axis.
 finger_bbox_width_x = 84.753
+# STEP coordinates of the small gripper servo shaft.
 small_gripper_servo_shaft_step_mm = [14.853, 268.233, 787.019]
+# Extra note about the limitations of the gripper bounding-box values.
 notes = "Bounding-box values are useful for rough collision checks, not for final gripping geometry."
 
 [reference_cad_pose_deg]
 # Approximate mathematical joint pose corresponding to the STEP assembly.
 # theta2 is measured from radial-forward horizontal; positive is upward.
 # theta3 is relative elbow angle; theta4 keeps the gripper approach approximately horizontal.
+# Base rotation angle in the CAD reference pose.
 theta1_base = 0.0
+# Shoulder angle in the CAD reference pose.
 theta2_shoulder = 90.0
+# Relative elbow angle in the CAD reference pose.
 theta3_elbow = -90.0
+# Wrist angle in the CAD reference pose.
 theta4_wrist = 0.0
+# Desired gripper approach angle in the CAD reference pose.
 alpha_gripper_approach = 0.0
+# Extra note explaining that this is not a calibrated real servo pose.
 notes = "This is a kinematic reference pose derived from the joint-center geometry, not a calibrated servo home pose."

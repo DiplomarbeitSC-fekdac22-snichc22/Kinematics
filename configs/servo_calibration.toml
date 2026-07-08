@@ -3,107 +3,197 @@
 # IMPORTANT: STEP/CAD does not contain safe mechanical limits, actual servo direction, or final pulse calibration.
 # Measure these values before commanding real hardware.
 
+# Version of this configuration file format.
 schema_version = "1.0"
+# Unit used for joint-angle values.
 units_angle = "deg"
+# Unit used for servo pulse-width values.
 units_pulse = "us"
+# Safety status of this calibration data.
 calibration_status = "provisional_not_safe_for_unattended_real_robot"
 
 [defaults]
+# PWM frequency used for all hobby servo channels.
 pwm_frequency_hz = 50
+# Lowest electrical pulse width normally considered for hobby servos.
 pulse_electrical_min_us = 500
+# Center pulse width normally considered neutral for hobby servos.
 pulse_electrical_center_us = 1500
+# Highest electrical pulse width normally considered for hobby servos.
 pulse_electrical_max_us = 2500
 # Conservative first-test pulse range. Expand only after manual verification.
+# Lower bound used for safe initial hardware tests.
 pulse_initial_safe_min_us = 1000
+# Upper bound used for safe initial hardware tests.
 pulse_initial_safe_max_us = 2000
+# Assumed total servo travel range before physical calibration.
 servo_nominal_range_deg = 270.0
+# Provisional conversion factor from angle degrees to pulse microseconds.
 us_per_degree_nominal = 7.4074074074
+# Whether generated pulses should be limited to the conservative first-test range.
 clamp_to_initial_safe_range = true
 
 [joints.J1_base]
+# Physical function of this joint.
 function = "base_rotation"
+# Servo model/type currently assumed for this joint.
 servo_type = "unknown_existing_pwm_servo"
+# PCA9685 output channel connected to this servo.
 pca9685_channel = 0
+# Kinematic angle represented by this joint.
 kinematic_role = "theta1"
+# Mathematical angle corresponding to the configured center/zero reference.
 theta_zero_deg = 0.0
+# Provisional home angle for this joint.
 theta_home_deg = 0.0
+# Provisional minimum safe mathematical angle.
 theta_min_deg = -90.0
+# Provisional maximum safe mathematical angle.
 theta_max_deg = 90.0
+# Direction sign from mathematical angle to servo pulse change.
 direction = 1
+# Pulse width corresponding to the zero/center position.
 pulse_center_us = 1500
+# Provisional minimum pulse width for this servo.
 pulse_min_us = 1000
+# Provisional maximum pulse width for this servo.
 pulse_max_us = 2000
+# Conversion factor from degrees to pulse microseconds for this joint.
 us_per_degree = 7.4074074074
+# Marks that this joint's values must be measured on the real robot.
 requires_physical_calibration = true
+# Extra calibration note for this joint.
 notes = "Base servo was not reliably identified from the STEP extraction. Verify channel, direction, limits, and zero."
 
 [joints.J2_shoulder]
+# Physical function of this joint.
 function = "shoulder"
+# Servo model/type currently assumed for this joint.
 servo_type = "Miuzei_DS3218_20kg_class"
+# PCA9685 output channel connected to this servo.
 pca9685_channel = 1
+# Kinematic angle represented by this joint.
 kinematic_role = "theta2"
+# Mathematical angle corresponding to the configured center/zero reference.
 theta_zero_deg = 90.0
+# Provisional home angle for this joint.
 theta_home_deg = 90.0
+# Provisional minimum safe mathematical angle.
 theta_min_deg = 0.0
+# Provisional maximum safe mathematical angle.
 theta_max_deg = 160.0
+# Direction sign from mathematical angle to servo pulse change.
 direction = 1
+# Pulse width corresponding to the zero/center position.
 pulse_center_us = 1500
+# Provisional minimum pulse width for this servo.
 pulse_min_us = 1000
+# Provisional maximum pulse width for this servo.
 pulse_max_us = 2000
+# Conversion factor from degrees to pulse microseconds for this joint.
 us_per_degree = 7.4074074074
+# Marks that this joint's values must be measured on the real robot.
 requires_physical_calibration = true
+# Extra calibration note for this joint.
 notes = "Theta zero/home uses the CAD reference pose. Confirm mathematical angle and servo pulse on the real arm."
 
 [joints.J3_elbow]
+# Physical function of this joint.
 function = "elbow"
+# Servo model/type currently assumed for this joint.
 servo_type = "Miuzei_DS3218_20kg_class"
+# PCA9685 output channel connected to this servo.
 pca9685_channel = 2
+# Kinematic angle represented by this joint.
 kinematic_role = "theta3"
+# Mathematical angle corresponding to the configured center/zero reference.
 theta_zero_deg = -90.0
+# Provisional home angle for this joint.
 theta_home_deg = -90.0
+# Provisional minimum safe mathematical angle.
 theta_min_deg = -150.0
+# Provisional maximum safe mathematical angle.
 theta_max_deg = 60.0
+# Direction sign from mathematical angle to servo pulse change.
 direction = 1
+# Pulse width corresponding to the zero/center position.
 pulse_center_us = 1500
+# Provisional minimum pulse width for this servo.
 pulse_min_us = 1000
+# Provisional maximum pulse width for this servo.
 pulse_max_us = 2000
+# Conversion factor from degrees to pulse microseconds for this joint.
 us_per_degree = 7.4074074074
+# Marks that this joint's values must be measured on the real robot.
 requires_physical_calibration = true
+# Extra calibration note for this joint.
 notes = "Relative elbow angle. The sign may need to be inverted depending on mounting and IK convention."
 
 [joints.J4_wrist]
+# Physical function of this joint.
 function = "wrist_pitch"
+# Servo model/type currently assumed for this joint.
 servo_type = "Miuzei_DS3218_20kg_class"
+# PCA9685 output channel connected to this servo.
 pca9685_channel = 3
+# Kinematic angle represented by this joint.
 kinematic_role = "theta4"
+# Mathematical angle corresponding to the configured center/zero reference.
 theta_zero_deg = 0.0
+# Provisional home angle for this joint.
 theta_home_deg = 0.0
+# Provisional minimum safe mathematical angle.
 theta_min_deg = -120.0
+# Provisional maximum safe mathematical angle.
 theta_max_deg = 120.0
+# Direction sign from mathematical angle to servo pulse change.
 direction = 1
+# Pulse width corresponding to the zero/center position.
 pulse_center_us = 1500
+# Provisional minimum pulse width for this servo.
 pulse_min_us = 1000
+# Provisional maximum pulse width for this servo.
 pulse_max_us = 2000
+# Conversion factor from degrees to pulse microseconds for this joint.
 us_per_degree = 7.4074074074
+# Marks that this joint's values must be measured on the real robot.
 requires_physical_calibration = true
+# Extra calibration note for this joint.
 notes = "Computed from theta4 = alpha - theta2 - theta3. Verify mechanical sign."
 
 [joints.J5_gripper]
+# Physical function of this joint/servo.
 function = "gripper"
+# Servo model/type currently assumed for the gripper.
 servo_type = "B2122_or_existing_gripper_servo"
+# PCA9685 output channel connected to the gripper servo.
 pca9685_channel = 4
+# Kinematic command represented by this servo.
 kinematic_role = "gripper_command"
 # Gripper is normally controlled by calibrated pulses, not IK angle.
+# Placeholder mathematical zero value for the gripper.
 theta_zero_deg = 0.0
+# Placeholder home value for the gripper.
 theta_home_deg = 0.0
+# Placeholder minimum gripper command value.
 theta_min_deg = 0.0
+# Placeholder maximum gripper command value.
 theta_max_deg = 1.0
+# Direction sign from command value to servo pulse change.
 direction = 1
+# Pulse width corresponding to the gripper center/neutral position.
 pulse_center_us = 1500
+# Provisional minimum pulse width for the gripper servo.
 pulse_min_us = 1000
+# Provisional maximum pulse width for the gripper servo.
 pulse_max_us = 2000
+# Placeholder conversion factor; gripper should use calibrated open/close pulses instead.
 us_per_degree = 1.0
+# Pulse width used to open the gripper.
 pulse_open_us = 1200
+# Pulse width used to close the gripper.
 pulse_closed_us = 1800
+# Marks that gripper values must be measured on the real robot.
 requires_physical_calibration = true
+# Extra calibration note for the gripper.
 notes = "Open/closed pulses are placeholders. Measure actual open and object-grip positions before use."

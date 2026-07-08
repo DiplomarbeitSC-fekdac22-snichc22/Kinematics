@@ -2,64 +2,103 @@
 # Vision should provide target coordinates already in robot-base coordinates.
 # Coordinate convention: X and Z form the horizontal plane; Y is vertical height.
 
+# Version of this configuration file format.
 schema_version = "1.0"
+# Unit used for all length/distance values in this file.
 units_length = "mm"
+# Unit used for all angular values in this file.
 units_angle = "deg"
 
 [model]
+# Name of the robot model that the kinematics code should assume.
 type = "4_dof_arm_plus_gripper"
+# Joint used to rotate the arm around the vertical base axis.
 base_joint = "J1_base"
+# Joints that are solved in the 2D arm plane.
 planar_joints = ["J2_shoulder", "J3_elbow", "J4_wrist"]
+# Joint used for opening and closing the gripper.
 gripper_joint = "J5_gripper"
+# Whether the wrist-to-gripper length should be included in IK/FK calculations.
 use_gripper_offset = true
+# Whether the height offset h0 should be read from robot_geometry.toml.
 use_h0_from_robot_geometry = true
+# Key in robot_geometry.toml that contains the selected base/shoulder height offset.
 selected_h0_key = "h0_selected"
+# Key in robot_geometry.toml that contains the selected wrist-to-gripper length.
 selected_Lg_key = "Lg_selected"
+# Coordinate field used as the vertical axis.
 vertical_axis = "y_mm"
+# Coordinate fields used as the horizontal robot-base plane.
 horizontal_plane_axes = ["x_mm", "z_mm"]
+# Formula used to compute the base rotation angle from target coordinates.
 base_angle_formula = "atan2(z_mm, x_mm)"
 
 [ik]
+# Coordinate frame expected for inverse-kinematics input targets.
 input_frame = "robot_base"
+# Preferred IK solution when multiple arm configurations can reach a target.
 solution_preference = "elbow_down"
-# alpha is the desired gripper approach angle in the planar target plane.
+# Desired gripper approach angle in the planar target plane.
 # 0 deg means approximately horizontal/radial-forward approach in the current simplified model.
 default_approach_angle_deg = 0.0
+# Clamp tiny numerical errors in cosine-rule calculations to the valid [-1, 1] range.
 clamp_cosine_rule_argument = true
+# Reject target positions that are outside the arm's reachable workspace.
 reject_unreachable_targets = true
+# Minimum extra distance used when checking whether targets are too close to the arm.
 minimum_reach_margin_mm = 5.0
+# Maximum extra distance used when checking whether targets are too far away.
 maximum_reach_margin_mm = 5.0
 
 [fk]
+# Compare forward-kinematics output against observed/measured gripper positions when available.
 compare_against_observed_gripper = true
+# Position error that should produce a warning but not necessarily fail validation.
 position_error_warning_mm = 15.0
+# Position error large enough to be considered a failed FK/measurement comparison.
 position_error_fail_mm = 35.0
 
 [motion_interpolation]
+# Interpolation curve used between motion waypoints.
 profile = "smoothstep"
+# Time between generated interpolation steps.
 step_time_s = 0.02
+# Maximum allowed joint-angle change per interpolation step.
 max_step_deg = 2.0
+# Maximum allowed joint speed during generated motion.
 max_joint_speed_deg_per_s = 45.0
 # This is kinematics-side path smoothing only. Servo acceleration/current limiting is hardware-specific.
 
 [target_offsets]
-# Used to generate safe intermediate poses around a target.
+# Vertical offset used to create a safe pre-grasp pose above the target.
 pre_grasp_y_offset_mm = 40.0
+# Vertical lift after closing the gripper.
 lift_after_grip_y_offset_mm = 50.0
+# Horizontal/radial offset used while approaching a target.
 approach_r_offset_mm = 20.0
 
 [validation]
+# Check commanded joint angles against configured joint limits.
 check_joint_limits = true
+# Check generated PWM pulses against configured servo pulse limits.
 check_pulse_limits = true
+# Check whether the target is reachable by the arm geometry.
 check_reachability = true
+# Check whether target coordinates are inside the configured workspace box.
 check_workspace_bounds = true
 
 [workspace_bounds_robot_base_mm]
 # Very rough placeholders. Replace after physical testing.
 # X and Z are horizontal. Y is height.
+# Minimum allowed X coordinate in robot-base space.
 x_min = -350.0
+# Maximum allowed X coordinate in robot-base space.
 x_max = 350.0
+# Minimum allowed vertical Y coordinate.
 y_min = 0.0
+# Maximum allowed vertical Y coordinate.
 y_max = 350.0
+# Minimum allowed Z coordinate in robot-base space.
 z_min = -350.0
+# Maximum allowed Z coordinate in robot-base space.
 z_max = 350.0

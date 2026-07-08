@@ -1,67 +1,113 @@
 # Physical measurements still required before real robot operation.
 # Copied/adapted from RobotKinematicMeasurements.xlsx.
 
+# Version of this configuration file format.
 schema_version = "1.0"
 
 [[items]]
+# Name of the required measurement.
 variable = "theta_min/theta_max per joint"
+# Unit used for this measurement.
 unit = "deg"
+# Importance level for completing this measurement.
 priority = "must"
+# Why this value cannot be trusted from CAD alone.
 reason = "Static CAD pose does not include servo travel limits."
+# How to measure the value on the real robot.
 method = "Jog each joint slowly to safe mechanical limits and record angle with a protractor or inclinometer."
 
 [[items]]
+# Name of the required measurement.
 variable = "theta_home per joint"
+# Unit used for this measurement.
 unit = "deg"
+# Importance level for completing this measurement.
 priority = "must"
+# Why this value cannot be trusted from CAD alone.
 reason = "STEP gives one assembly pose, not your chosen home pose."
+# How to measure the value on the real robot.
 method = "Define a repeatable home pose and measure all joint angles."
 
 [[items]]
+# Name of the required measurement.
 variable = "pulse_min/pulse_max per servo"
+# Unit used for this measurement.
 unit = "us"
+# Importance level for completing this measurement.
 priority = "must"
+# Why this value cannot be trusted from CAD alone.
 reason = "STEP geometry does not store PWM calibration."
+# How to measure the value on the real robot.
 method = "Command conservative pulse values and expand until the safe limit is reached."
 
 [[items]]
+# Name of the required measurement.
 variable = "pulse_home per servo"
+# Unit used for this measurement.
 unit = "us"
+# Importance level for completing this measurement.
 priority = "must"
+# Why this value cannot be trusted from CAD alone.
 reason = "No electrical calibration is available in CAD."
+# How to measure the value on the real robot.
 method = "Record pulse width at chosen home pose."
 
 [[items]]
+# Name of the required measurement.
 variable = "servo direction sign"
+# Unit or value format used for this measurement.
 unit = "+1/-1"
+# Importance level for completing this measurement.
 priority = "must"
+# Why this value cannot be trusted from CAD alone.
 reason = "CAD cannot show whether increasing PWM increases or decreases the mathematical angle."
+# How to measure the value on the real robot.
 method = "Increase pulse slightly and observe angle direction."
 
 [[items]]
+# Name of the required measurement.
 variable = "gripper open/closed pulse"
+# Unit used for this measurement.
 unit = "us"
+# Importance level for completing this measurement.
 priority = "must"
+# Why this value cannot be trusted from CAD alone.
 reason = "STEP shows geometry, not servo control endpoints."
+# How to measure the value on the real robot.
 method = "Record pulse values for fully open and reliable closed positions."
 
 [[items]]
+# Name of the required measurement.
 variable = "actual gripper opening width"
+# Unit used for this measurement.
 unit = "mm"
+# Importance level for completing this measurement.
 priority = "should"
+# Why this value cannot be trusted from CAD alone.
 reason = "Bounding box is not the jaw opening."
+# How to measure the value on the real robot.
 method = "Measure inner jaw distance open/closed with calipers."
 
 [[items]]
+# Name of the required measurement.
 variable = "object size and grip point"
+# Unit used for this measurement.
 unit = "mm"
+# Importance level for completing this measurement.
 priority = "must"
+# Why this value cannot be trusted from CAD alone.
 reason = "Object is not part of STEP file."
+# How to measure the value on the real robot.
 method = "Measure object diameter/width/height and desired grip height."
 
 [[items]]
+# Name of the required measurement.
 variable = "collision/cable limits"
+# Unit or value format used for this measurement.
 unit = "mm/deg"
+# Importance level for completing this measurement.
 priority = "should"
+# Why this value cannot be trusted from CAD alone.
 reason = "Static CAD does not show cable routing under motion."
+# How to measure the value on the real robot.
 method = "Move arm through its range and record unsafe zones."
