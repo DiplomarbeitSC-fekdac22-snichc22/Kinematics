@@ -53,7 +53,7 @@ J5_gripper = 0.0
 # Marks that this pose must be tested before real use.
 requires_verification = true
 
-[poses.deposit_placeholder]
+[poses.deposit]
 # Human-readable explanation of this pose.
 description = "Placeholder deposit pose. Replace with deposit position from physical setup."
 # Base rotation angle for the deposit pose.

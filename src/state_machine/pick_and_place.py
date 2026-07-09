@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from typing import Protocol
 
+from jedi.third_party.typeshed.stubs.docutils.docutils.nodes import target
 from statemachine import StateMachine, State
 
 from config.config_loader import load_config
@@ -118,7 +119,68 @@ class PickAndPlaceStateMachine(StateMachine):
     def on_enter_moving_ready(self) -> None:
         self._send_named_pose("ready")
 
+    def on_enter_moving_in_front_of_object(self) -> None:
+        self._send_target_pose(
+            "move_in_front_of_object",
+            self._target_in_front_of_object()
+        )
 
+    def on_enter_advancing_towards_object(self) -> None:
+        self._send_target_pose(
+            "advance_towards_object",
+            self._require_target()
+        )
+
+    def on_enter_closing_gripper(self) -> None:
+        self._send_gripper_command("close_gripper", "closed_pulse_us")
+
+    def on_enter_lifting_object(self) -> None:
+        self._send_target_pose(
+            "lift_object",
+            self._target_in_front_of_object()
+        )
+
+    def on_enter_moving_to_deposit(self) -> None:
+        self._send_named_pose("deposit")
+
+    def on_enter_opening_gripper(self) -> None:
+        self._send_gripper_command("open_gripper", "open_pulse_us")
+
+    def on_enter_returning_home(self) -> None:
+        self._send_named_pose("home")
+
+    def on_enter_failed(self) -> None:
+        if self.last_error is None:
+            self.last_error = "State machine failed without a specific error message"
+
+    def _send_target_pose(self, command_name: str, target: TargetPosition) -> None:
+        result = calculate_angles(
+            target.x_mm,
+            target.y_mm,
+            target.z_mm
+        )
+
+        if not result["reachable"]:
+            self.last_error = "; ".join(result["reasons"])
+            self.send("fail")
+            return
+
+        angles = result["angles_deg"]
+
+        joint_angles = {
+            "J1_base": angles["base"],
+            "J2_shoulder": angles["base"],
+            "J3_elbow": angles["base"],
+        }
+
+        pulses = self._joint_angles_to_pwm(joint_angles)
+
+        self.sink.send(
+            MotionCommand(
+                name=command_name,
+                pulses_us=pulses,
+            )
+        )
 
     def _send_named_pose(self, name: str) -> None:
         joint_angles = self._get_named_pose_angles(name)
@@ -134,6 +196,25 @@ class PickAndPlaceStateMachine(StateMachine):
             MotionCommand(
                 name=f"move_{name}",
                 pulses_us=pulses,
+            )
+        )
+
+    def _send_gripper_command(self, command_name: str, pulse_key: str) -> None:
+        gripper_commands = self.poses_config["gripper_commands"]
+
+        if pulse_key not in gripper_commands:
+            self.last_error = f"Unknown gripper pulse key: {pulse_key}"
+            self.send("fail")
+            return
+
+        pulse_us = int(gripper_commands[pulse_key])
+
+        self.sink.send(
+            MotionCommand(
+                name=command_name,
+                pulses_us={
+                    "J5_gripper": pulse_us
+                },
             )
         )
 
@@ -160,6 +241,12 @@ class PickAndPlaceStateMachine(StateMachine):
         return {
             key: float(value) for key, value in pose.items() if key.startswith("J")
         }
+
+    def _target_in_front_of_object(self) -> TargetPosition:
+        ...
+
+    def _target_lifted_from_object(self) -> TargetPosition:
+        ...
 
     def _require_target(self) -> TargetPosition:
         if self.target is None:
