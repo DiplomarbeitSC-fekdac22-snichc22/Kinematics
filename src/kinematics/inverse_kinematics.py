@@ -21,9 +21,6 @@ from typing import Any
 from kinematics.angle_to_pwm import angle_to_pwm, clamp_angle
 
 ROOT = Path(__file__).resolve().parents[2]
-SRC_DIR = ROOT / "src"
-if str(SRC_DIR) not in sys.path:
-    sys.path.insert(0, str(SRC_DIR))
 
 from config.config_loader import load_config
 
