@@ -18,7 +18,7 @@ from math import atan2, cos, degrees, hypot, radians, sin, sqrt
 from pathlib import Path
 from typing import Any
 
-from kinematics.angle_to_pwm import angle_to_pwm
+from kinematics.angle_to_pwm import angle_to_pwm, clamp_angle
 
 ROOT = Path(__file__).resolve().parents[2]
 SRC_DIR = ROOT / "src"
@@ -28,10 +28,6 @@ if str(SRC_DIR) not in sys.path:
 from config.config_loader import load_config
 
 CONFIG_DIR = ROOT / "configs"
-
-
-def clamp_angle(value: float, low: float, high: float) -> float:
-    return max(low, min(high, value))
 
 
 def _joint_for_role(servo_config: dict[str, Any], role: str) -> tuple[str, dict[str, Any]]:

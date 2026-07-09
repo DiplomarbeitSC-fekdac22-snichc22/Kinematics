@@ -1,6 +1,7 @@
 from typing import Any
 
-from kinematics.inverse_kinematics import clamp_angle
+def clamp_angle(value: float, low: float, high: float) -> float:
+    return max(low, min(high, value))
 
 
 def angle_to_pwm(angle_deg: float, joint: dict[str, Any]) -> int:
