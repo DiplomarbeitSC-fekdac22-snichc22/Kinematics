@@ -13,9 +13,9 @@ Math model:
 
 from __future__ import annotations
 
+import sys
 from math import atan2, cos, degrees, hypot, radians, sin, sqrt
 from pathlib import Path
-import sys
 from typing import Any
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -41,9 +41,9 @@ def _joint_for_role(servo_config: dict[str, Any], role: str) -> tuple[str, dict[
 
 def _pwm_from_angle(angle_deg: float, joint: dict[str, Any]) -> int:
     pulse = joint["pulse_center_us"] + (
-        (angle_deg - joint["theta_zero_deg"])
-        * joint["direction"]
-        * joint["us_per_degree"]
+            (angle_deg - joint["theta_zero_deg"])
+            * joint["direction"]
+            * joint["us_per_degree"]
     )
     return round(_clamp(pulse, joint["pulse_min_us"], joint["pulse_max_us"]))
 

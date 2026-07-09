@@ -1,5 +1,5 @@
-from pathlib import Path
 import sys
+from pathlib import Path
 
 # Allows running this example directly from the package root without installation.
 ROOT = Path(__file__).resolve().parents[1]
@@ -21,4 +21,5 @@ print("h0 selected along Y:", geometry["link_lengths_mm"]["h0_selected"], "mm")
 print("IK solution preference:", settings["ik"]["solution_preference"])
 print("\nServo channels:")
 for name, joint in servo["joints"].items():
-    print(f"  {name}: channel {joint['pca9685_channel']}, direction {joint['direction']}, pulse {joint['pulse_min_us']}-{joint['pulse_max_us']} us")
+    print(
+        f"  {name}: channel {joint['pca9685_channel']}, direction {joint['direction']}, pulse {joint['pulse_min_us']}-{joint['pulse_max_us']} us")
