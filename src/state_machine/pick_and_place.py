@@ -1,7 +1,6 @@
 from dataclasses import dataclass
 from typing import Protocol
 
-from jedi.third_party.typeshed.stubs.docutils.docutils.nodes import target
 from statemachine import StateMachine, State
 
 from config.config_loader import load_config
@@ -25,7 +24,7 @@ class MotionCommandSink(Protocol):
     def send(self, command: MotionCommand) -> None:
         ...
 
-class DryRunMotionSink(Protocol):
+class DryRunMotionSink:
     def send(self, command: MotionCommand) -> None:
         print(f"{command.name}: {command.pulses_us}")
 
@@ -254,3 +253,22 @@ class PickAndPlaceStateMachine(StateMachine):
 
         return self.target
 
+
+if __name__ == "__main__":
+    machine = PickAndPlaceStateMachine()
+
+    machine.start_pick_and_place(
+        TargetPosition(
+            x_mm=200.0,
+            y_mm=180.0,
+            z_mm=60.0
+        )
+    )
+
+    success = machine.run_until_finished()
+
+    print(f"Final state: {machine.configuration}")
+    print(f"Success: {success}")
+
+    if machine.last_error is not None:
+        print(f"Error: {machine.last_error}")
