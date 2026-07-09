@@ -18,6 +18,8 @@ from math import atan2, cos, degrees, hypot, radians, sin, sqrt
 from pathlib import Path
 from typing import Any
 
+from kinematics.angle_to_pwm import angle_to_pwm
+
 ROOT = Path(__file__).resolve().parents[2]
 SRC_DIR = ROOT / "src"
 if str(SRC_DIR) not in sys.path:
@@ -28,7 +30,7 @@ from config.config_loader import load_config
 CONFIG_DIR = ROOT / "configs"
 
 
-def _clamp(value: float, low: float, high: float) -> float:
+def clamp_angle(value: float, low: float, high: float) -> float:
     return max(low, min(high, value))
 
 
@@ -37,15 +39,6 @@ def _joint_for_role(servo_config: dict[str, Any], role: str) -> tuple[str, dict[
         if joint.get("kinematic_role") == role:
             return joint_name, joint
     raise KeyError(f"No servo joint configured for role {role!r}")
-
-
-def _pwm_from_angle(angle_deg: float, joint: dict[str, Any]) -> int:
-    pulse = joint["pulse_center_us"] + (
-            (angle_deg - joint["theta_zero_deg"])
-            * joint["direction"]
-            * joint["us_per_degree"]
-    )
-    return round(_clamp(pulse, joint["pulse_min_us"], joint["pulse_max_us"]))
 
 
 def calculate_angles(x_mm: float, y_mm: float, z_mm: float, config_dir: Path | str = CONFIG_DIR) -> dict[str, Any]:
@@ -93,7 +86,7 @@ def calculate_angles(x_mm: float, y_mm: float, z_mm: float, config_dir: Path | s
     d = hypot(wrist_r, wrist_y)
     cos_theta3 = (d * d - l1 * l1 - l2 * l2) / (2 * l1 * l2)
     if ik["clamp_cosine_rule_argument"]:
-        cos_theta3 = _clamp(cos_theta3, -1.0, 1.0)
+        cos_theta3 = clamp_angle(cos_theta3, -1.0, 1.0)
 
     def solve_branch(elbow_sign: float) -> tuple[float, float, float, float]:
         elbow_rad = atan2(
@@ -164,9 +157,9 @@ def calculate_angles(x_mm: float, y_mm: float, z_mm: float, config_dir: Path | s
             "elbow": theta3,
         },
         "pwm_us": {
-            "J1": _pwm_from_angle(theta1, joint_1),
-            "J2": _pwm_from_angle(theta2, joint_2),
-            "J3": _pwm_from_angle(theta3, joint_3),
+            "J1": angle_to_pwm(theta1, joint_1),
+            "J2": angle_to_pwm(theta2, joint_2),
+            "J3": angle_to_pwm(theta3, joint_3),
         },
         "reachable": not reasons,
         "reasons": reasons,
