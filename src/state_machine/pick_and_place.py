@@ -3,6 +3,8 @@ from typing import Protocol
 
 from statemachine import StateMachine, State
 
+from config.config_loader import load_config
+
 
 @dataclass(frozen=True)
 class TargetPosition:
@@ -18,6 +20,10 @@ class MotionCommand:
 class MotionCommandSink(Protocol):
     def send(self, command: MotionCommand) -> None:
         ...
+
+class DryRunMotionSink(Protocol):
+    def send(self, command: MotionCommand) -> None:
+        print(f"{command.name}: {command.pulses_us}")
 
 class PickAndPlaceStateMachine(StateMachine):
     idle = State("idle", initial=True)
@@ -35,17 +41,18 @@ class PickAndPlaceStateMachine(StateMachine):
 
     begin = idle.to(validating_target)
 
-    target_valid = validating_target.to(moving_ready)
-    target_invalid = validating_target.to(failed)
-
-    ready_reached = moving_ready.to(moving_in_front_of_object)
-    above_object_reached = moving_in_front_of_object.to(advancing_towards_object)
-    object_reached = advancing_towards_object.to(closing_gripper)
-    gripper_closed = closing_gripper.to(lifting_object)
-    object_lifted = lifting_object.to(moving_to_deposit)
-    deposit_reached = moving_to_deposit.to(opening_gripper)
-    gripper_opened = opening_gripper.to(returning_home)
-    home_reached = returning_home.to(done)
+    advance = (
+            validating_target.to(moving_ready, cond="target_is_valid")
+            | validating_target.to(failed)
+            | moving_ready.to(moving_in_front_of_object)
+            | moving_in_front_of_object.to(advancing_towards_object)
+            | advancing_towards_object.to(closing_gripper)
+            | closing_gripper.to(lifting_object)
+            | lifting_object.to(moving_to_deposit)
+            | moving_to_deposit.to(opening_gripper)
+            | opening_gripper.to(returning_home)
+            | returning_home.to(done)
+    )
 
     fail = (
             validating_target.to(failed)
@@ -58,4 +65,35 @@ class PickAndPlaceStateMachine(StateMachine):
             | opening_gripper.to(failed)
             | returning_home.to(failed)
     )
+
+    def __init__(self, sink: MotionCommandSink | None = None) -> None:
+        self.sink = sink or DryRunMotionSink()
+
+        self.target: TargetPosition | None = None
+        self.target_validation_ok = False
+        self.last_error: str | None = None
+
+        self.kinematics_setting = load_config("kinematics_settings.toml")
+        self.servo_calibration = load_config("servo_calibration.toml")
+        self.poses_config = load_config("poses.toml")
+
+        super().__init__()
+
+    def start_pick_and_place(self, target: TargetPosition) -> None:
+        if not self.idle.is_active:
+            raise RuntimeError(f"Cannot start pick and place before idle (current: {self.configuration})")
+
+        self.target = target
+        self.target_validation_ok = False
+        self.last_error = None
+
+        self.send("begin")
+
+    def run_until_finished(self) -> bool:
+        while not self.done.is_active and not self.failed.is_active:
+            self.send("advance")
+
+        return self.done.is_active
+
+
 
