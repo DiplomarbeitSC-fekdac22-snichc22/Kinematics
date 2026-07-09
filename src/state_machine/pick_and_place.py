@@ -4,6 +4,9 @@ from typing import Protocol
 from statemachine import StateMachine, State
 
 from config.config_loader import load_config
+from kinematics.angle_to_pwm import angle_to_pwm
+from kinematics.inverse_kinematics import calculate_angles
+from kinematics.workspace_checker import are_joint_angles_inside_limits
 
 
 @dataclass(frozen=True)
@@ -95,5 +98,72 @@ class PickAndPlaceStateMachine(StateMachine):
 
         return self.done.is_active
 
+    def target_is_valid(self) -> bool:
+        return self.target_validation_ok
 
+    def on_enter_validating_target(self) -> None:
+        target = self._require_target()
+
+        result = calculate_angles(
+            target.x_mm,
+            target.y_mm,
+            target.z_mm,
+        )
+
+        self.target_validation_ok = bool(result["reachable"])
+
+        if not self.target_validation_ok:
+            self.last_error = "; ".join(result["reasons"])
+
+    def on_enter_moving_ready(self) -> None:
+        self._send_named_pose("ready")
+
+
+
+    def _send_named_pose(self, name: str) -> None:
+        joint_angles = self._get_named_pose_angles(name)
+
+        if not are_joint_angles_inside_limits(joint_angles):
+            self.last_error = f"Named pose {name} not inside configured limits!"
+            self.send("fail")
+            return
+
+        pulses = self._joint_angles_to_pwm(joint_angles)
+
+        self.sink.send(
+            MotionCommand(
+                name=f"move_{name}",
+                pulses_us=pulses,
+            )
+        )
+
+    def _joint_angles_to_pwm(self, joint_angles: dict[str, float]) -> dict[str, int]:
+        joints = self.servo_calibration["joints"]
+        pulses: dict[str, int] = {}
+
+        for name, angle in joint_angles.items():
+            if name not in joints:
+                raise KeyError(f"Unknown joint name: {name}")
+
+            pulses[name] = angle_to_pwm(angle, joints[name])
+
+        return pulses
+
+    def _get_named_pose_angles(self, name: str) -> dict[str, float]:
+        poses = self.poses_config["poses"]
+
+        if name not in poses:
+            raise KeyError(f"Unknown pose: {name}")
+
+        pose = poses[name]
+
+        return {
+            key: float(value) for key, value in pose.items() if key.startswith("J")
+        }
+
+    def _require_target(self) -> TargetPosition:
+        if self.target is None:
+            raise RuntimeError("No target position has been set")
+
+        return self.target
 
