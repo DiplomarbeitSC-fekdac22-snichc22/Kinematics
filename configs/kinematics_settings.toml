@@ -70,9 +70,9 @@ maximum_reach_margin_mm = 5.0
 [angle_convention]
 # Side-view convention from 2D Arm Diagram.png.
 arm_plane_forward = "toward_target_front"
-# Shoulder 0 deg points forward/horizontal; positive rotates down/back toward the elbow.
+# Shoulder 0 deg points forward/horizontal; positive rotates up/back toward the elbow.
 shoulder_zero = "forward_horizontal"
-shoulder_positive = "down_to_back"
+shoulder_positive = "up_to_back"
 # Elbow 0 deg points from elbow back toward the shoulder; positive rotates toward the wrist.
 elbow_zero = "toward_shoulder"
 elbow_positive = "toward_wrist"
@@ -123,11 +123,13 @@ depth = 400.0
 width = 360.0
 
 [elbow_clearance_mm]
-# Additional clearance beyond the nominal box depth. The front allowance varies by location.
+# Measured arm/elbow operating clearance beyond the nominal box depth.
+# The front allowance varies by location; collision safety still needs physical verification.
 front_extra_min = 20.0
 front_extra_max = 40.0
 rear_extra = 20.0
-# The nominal target workspace below does not include this elbow-only clearance.
+# The runtime bounds below use the outer measured clearances so valid approach targets are
+# not rejected solely because they lie just beyond the nominal enclosure face.
 
 [shelving_mm]
 # Distance downward from the box top at which the first shelf/compartment starts.
@@ -142,12 +144,12 @@ x_position_mm = 100.0
 x_direction = "positive"
 
 [workspace_bounds_robot_base_mm]
-# Measured nominal box interior. Elbow-only clearance is recorded separately above.
+# Measured operating envelope: the centered nominal box plus the measured clearances above.
 # X is depth from the box-depth centerline, Z is lateral from the width centerline, and Y is distance from the top.
-# Rear edge of the nominal target workspace: 200 mm behind the X=0 center plane.
-x_min = -200.0
-# Front edge of the nominal target workspace: 200 mm in the positive-X/forward direction.
-x_max = 200.0
+# Rear edge: half the 400 mm enclosure depth plus 20 mm rear clearance.
+x_min = -220.0
+# Front edge: half the 400 mm enclosure depth plus the maximum 40 mm front clearance.
+x_max = 240.0
 # Minimum allowed Y distance downward from the top reference.
 y_min = 0.0
 # Maximum allowed Y distance downward from the top reference.

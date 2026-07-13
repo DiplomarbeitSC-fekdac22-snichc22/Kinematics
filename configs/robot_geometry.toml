@@ -188,13 +188,14 @@ notes = "The 70 mm maximum jaw opening is physically measured. Bounding-box valu
 [reference_cad_pose_deg]
 # Approximate mathematical joint pose corresponding to the STEP assembly.
 # theta2 is measured from radial-forward horizontal; positive is upward.
-# theta3 is relative elbow angle; theta4 keeps the gripper approach approximately horizontal.
+# theta3 is the positive interior elbow bend (180 minus the absolute relative math angle);
+# theta4 keeps the gripper approach approximately horizontal.
 # Base rotation angle in the CAD reference pose.
 theta1_base = 0.0
 # Shoulder angle in the CAD reference pose.
 theta2_shoulder = 90.0
-# Relative elbow angle in the CAD reference pose.
-theta3_elbow = -90.0
+# Positive elbow bend angle in the CAD reference pose.
+theta3_elbow = 90.0
 # Wrist angle in the CAD reference pose.
 theta4_wrist = 0.0
 # Desired gripper approach angle in the CAD reference pose.

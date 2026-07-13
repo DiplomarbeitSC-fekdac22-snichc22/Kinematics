@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from math import hypot
 from typing import Protocol
 
 from statemachine import StateMachine, State
@@ -136,7 +137,7 @@ class PickAndPlaceStateMachine(StateMachine):
     def on_enter_lifting_object(self) -> None:
         self._send_target_pose(
             "lift_object",
-            self._target_in_front_of_object()
+            self._target_lifted_from_object()
         )
 
     def on_enter_moving_to_deposit(self) -> None:
@@ -168,8 +169,9 @@ class PickAndPlaceStateMachine(StateMachine):
 
         joint_angles = {
             "J1_base": angles["base"],
-            "J2_shoulder": angles["base"],
-            "J3_elbow": angles["base"],
+            "J2_shoulder": angles["shoulder"],
+            "J3_elbow": angles["elbow"],
+            "J4_wrist": angles["wrist"],
         }
 
         pulses = self._joint_angles_to_pwm(joint_angles)
@@ -242,10 +244,37 @@ class PickAndPlaceStateMachine(StateMachine):
         }
 
     def _target_in_front_of_object(self) -> TargetPosition:
-        ...
+        target = self._require_target()
+        offsets = self.kinematics_setting["target_offsets"]
+        base_x, _, base_z = self.kinematics_setting["input_coordinates"][
+            "base_rotation_axis_at_mounting_plate_mm"
+        ]
+
+        delta_x = target.x_mm - base_x
+        delta_z = target.z_mm - base_z
+        radial_distance = hypot(delta_x, delta_z)
+        approach_offset = float(offsets["approach_r_offset_mm"])
+
+        if radial_distance <= approach_offset:
+            raise ValueError("Target is too close to apply the configured radial approach offset")
+
+        scale = (radial_distance - approach_offset) / radial_distance
+        return TargetPosition(
+            x_mm=base_x + delta_x * scale,
+            y_mm=target.y_mm - float(offsets["pre_grasp_y_offset_mm"]),
+            z_mm=base_z + delta_z * scale,
+        )
 
     def _target_lifted_from_object(self) -> TargetPosition:
-        ...
+        target = self._require_target()
+        lift_offset = float(
+            self.kinematics_setting["target_offsets"]["lift_after_grip_y_offset_mm"]
+        )
+        return TargetPosition(
+            x_mm=target.x_mm,
+            y_mm=target.y_mm - lift_offset,
+            z_mm=target.z_mm,
+        )
 
     def _require_target(self) -> TargetPosition:
         if self.target is None:
@@ -259,7 +288,7 @@ if __name__ == "__main__":
 
     machine.start_pick_and_place(
         TargetPosition(
-            x_mm=200.0,
+            x_mm=230.0,
             y_mm=180.0,
             z_mm=60.0
         )

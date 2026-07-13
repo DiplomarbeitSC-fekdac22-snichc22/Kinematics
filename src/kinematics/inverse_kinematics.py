@@ -8,8 +8,9 @@ Math model:
 - The wrist target is the gripper target minus Lg along the approach angle.
 - J2/J3 are solved as a 2-link triangle using the cosine rule.
   Internally the forearm direction is shoulder_math + elbow_relative_math.
-- Output J2/J3 use the side-view diagram convention: shoulder is positive down/back;
-  elbow is the bend from the shoulder-side link toward the wrist.
+- Output J2 uses the same positive-up mathematical convention as the CAD geometry,
+  servo limits, and workspace model. J3 is the positive interior elbow bend.
+- J4 cancels the shoulder-plus-forearm direction to preserve the configured approach angle.
 """
 
 from __future__ import annotations
@@ -36,7 +37,7 @@ def _joint_for_role(servo_config: dict[str, Any], role: str) -> tuple[str, dict[
 
 
 def calculate_angles(x_mm: float, y_mm: float, z_mm: float, config_dir: Path | str = CONFIG_DIR) -> dict[str, Any]:
-    """Return J1/J2/J3 angles, PWM estimates, and reachability for one XYZ target."""
+    """Return J1-J4 angles, PWM estimates, and reachability for one XYZ target."""
     config_dir = Path(config_dir)
     geometry = load_config("robot_geometry.toml", config_dir)
     servo = load_config("servo_calibration.toml", config_dir)
@@ -107,14 +108,21 @@ def calculate_angles(x_mm: float, y_mm: float, z_mm: float, config_dir: Path | s
     else:
         raise ValueError(f"Unsupported solution_preference: {preference!r}")
 
-    # Convert from internal math angles to the side-view diagram angles.
-    theta2 = -degrees(theta2_rad)
+    # Keep the shoulder convention consistent with geometry, FK, and configured limits.
+    theta2 = degrees(theta2_rad)
     theta3 = 180.0 - abs(degrees(theta3_rad))
+    theta4 = degrees(approach - theta2_rad - theta3_rad)
 
     joint_name_1, joint_1 = _joint_for_role(servo, "theta1")
     joint_name_2, joint_2 = _joint_for_role(servo, "theta2")
     joint_name_3, joint_3 = _joint_for_role(servo, "theta3")
-    angles = {joint_name_1: theta1, joint_name_2: theta2, joint_name_3: theta3}
+    joint_name_4, joint_4 = _joint_for_role(servo, "theta4")
+    angles = {
+        joint_name_1: theta1,
+        joint_name_2: theta2,
+        joint_name_3: theta3,
+        joint_name_4: theta4,
+    }
 
     reasons: list[str] = []
     min_reach = abs(l1 - l2) + ik["minimum_reach_margin_mm"]
@@ -149,11 +157,13 @@ def calculate_angles(x_mm: float, y_mm: float, z_mm: float, config_dir: Path | s
             "base": theta1,
             "shoulder": theta2,
             "elbow": theta3,
+            "wrist": theta4,
         },
         "pwm_us": {
             "J1": angle_to_pwm(theta1, joint_1),
             "J2": angle_to_pwm(theta2, joint_2),
             "J3": angle_to_pwm(theta3, joint_3),
+            "J4": angle_to_pwm(theta4, joint_4),
         },
         "reachable": not reasons,
         "reasons": reasons,
@@ -174,11 +184,13 @@ def _print_result(x_mm: float, y_mm: float, z_mm: float) -> None:
     print(f"base angle = {angles['base']:.2f}°")
     print(f"shoulder angle = {angles['shoulder']:.2f}°")
     print(f"elbow angle = {angles['elbow']:.2f}°")
+    print(f"wrist angle = {angles['wrist']:.2f}°")
     print("")
     print("PWM estimate:")
     print(f"J1 = {pwm['J1']} µs")
     print(f"J2 = {pwm['J2']} µs")
     print(f"J3 = {pwm['J3']} µs")
+    print(f"J4 = {pwm['J4']} µs")
     print("")
     print(f"Reachable: {'yes' if result['reachable'] else 'no'}")
     if result["reasons"]:

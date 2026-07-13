@@ -159,7 +159,7 @@ us_per_degree = 7.4074074074
 # Marks that this joint's values must be measured on the real robot.
 requires_physical_calibration = true
 # Extra calibration note for this joint.
-notes = "Computed from theta4 = alpha - theta2 - theta3. Verify mechanical sign."
+notes = "IK uses theta4 = approach - (shoulder_math + elbow_relative_math). Verify mechanical sign."
 
 [joints.J5_gripper]
 # Physical function of this joint/servo.

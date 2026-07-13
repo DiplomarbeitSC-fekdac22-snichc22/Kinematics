@@ -1,5 +1,6 @@
 # Named joint poses for kinematics testing.
-# Angles are mathematical joint angles, not guaranteed real servo angles.
+# Angles use the configured positive-up shoulder and positive elbow-bend conventions.
+# They are mathematical joint angles, not guaranteed real servo angles.
 # Update after measuring physical home and safe limits.
 
 # Version of this configuration file format.
@@ -14,8 +15,8 @@ description = "Approximate pose represented by the STEP assembly geometry"
 J1_base = 0.0
 # Shoulder joint angle.
 J2_shoulder = 90.0
-# Relative elbow joint angle.
-J3_elbow = -90.0
+# Positive elbow bend angle.
+J3_elbow = 90.0
 # Wrist pitch angle.
 J4_wrist = 0.0
 # Gripper command placeholder angle/value.
@@ -28,10 +29,10 @@ description = "Provisional software home; replace with measured repeatable home 
 J1_base = 0.0
 # Shoulder angle for the home pose.
 J2_shoulder = 90.0
-# Elbow angle for the home pose.
-J3_elbow = -90.0
+# Positive elbow bend angle for the home pose.
+J3_elbow = 135.0
 # Wrist angle for the home pose.
-J4_wrist = 0.0
+J4_wrist = -25.0
 # Gripper command for the home pose.
 J5_gripper = 0.0
 # Marks that this pose still needs real-world measurement.
@@ -44,8 +45,8 @@ description = "Provisional ready pose with gripper lifted away from workspace"
 J1_base = 0.0
 # Shoulder angle for the ready pose.
 J2_shoulder = 75.0
-# Elbow angle for the ready pose.
-J3_elbow = -75.0
+# Positive elbow bend angle for the ready pose.
+J3_elbow = 75.0
 # Wrist angle for the ready pose.
 J4_wrist = 0.0
 # Gripper command for the ready pose.
@@ -60,8 +61,8 @@ description = "Provisional joint fallback for the measured drop-off target; repl
 J1_base = 45.0
 # Shoulder angle for the deposit pose.
 J2_shoulder = 70.0
-# Elbow angle for the deposit pose.
-J3_elbow = -70.0
+# Positive elbow bend angle for the deposit pose.
+J3_elbow = 70.0
 # Wrist angle for the deposit pose.
 J4_wrist = 0.0
 # Gripper command for the deposit pose.
