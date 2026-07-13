@@ -167,6 +167,11 @@ h0_selected_runtime_field = "y_mm"
 h0_selected_reference = "mount_plate_top"
 
 [gripper_geometry]
+# Physically measured maximum inner jaw opening.
+max_opening_width_mm = 70.0
+# Source and confidence of the jaw-opening measurement.
+max_opening_source = "Maße Roboter 1. Runde.md"
+max_opening_confidence = "measured"
 # Estimated front/center point of the gripper in STEP coordinates.
 front_estimate_step_mm = [5.347, 269.233, 711.103]
 # Minimum STEP coordinates of the rough gripper/finger bounding box.
@@ -178,7 +183,7 @@ finger_bbox_width_x = 84.753
 # STEP coordinates of the small gripper servo shaft.
 small_gripper_servo_shaft_step_mm = [14.853, 268.233, 787.019]
 # Extra note about the limitations of the gripper bounding-box values.
-notes = "Bounding-box values are useful for rough collision checks, not for final gripping geometry."
+notes = "The 70 mm maximum jaw opening is physically measured. Bounding-box values remain useful only for rough collision checks."
 
 [reference_cad_pose_deg]
 # Approximate mathematical joint pose corresponding to the STEP assembly.

@@ -55,7 +55,7 @@ requires_verification = true
 
 [poses.deposit]
 # Human-readable explanation of this pose.
-description = "Placeholder deposit pose. Replace with deposit position from physical setup."
+description = "Provisional joint fallback for the measured drop-off target; replace after its X distance and servo pose are measured."
 # Base rotation angle for the deposit pose.
 J1_base = 45.0
 # Shoulder angle for the deposit pose.
@@ -68,6 +68,18 @@ J4_wrist = 0.0
 J5_gripper = 0.0
 # Marks that this pose must be tested before real use.
 requires_verification = true
+
+[cartesian_targets.drop_off]
+# Complete measured drop-off target in the top-down runtime frame.
+description = "Drop-off point measured from the box top and center planes"
+# X is centered in the box depth.
+x_mm = 0.0
+# Distance downward from the top reference.
+y_mm = 370.0
+# Lateral offset from the centerline; positive Z is right.
+z_mm = 130.0
+z_direction = "right"
+source = "Maße Roboter 1. Runde.md; follow-up physical measurement"
 
 [gripper_commands]
 # These are pulse commands, not angles. Values must be measured.

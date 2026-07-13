@@ -1,5 +1,5 @@
 # Physical measurements still required before real robot operation.
-# Copied/adapted from RobotKinematicMeasurements.xlsx.
+# Copied/adapted from RobotKinematicMeasurements.xlsx and updated with "Maße Roboter 1. Runde.md".
 
 # Version of this configuration file format.
 schema_version = "1.0"
@@ -78,15 +78,15 @@ method = "Record pulse values for fully open and reliable closed positions."
 
 [[items]]
 # Name of the required measurement.
-variable = "actual gripper opening width"
+variable = "minimum/closed gripper opening width"
 # Unit used for this measurement.
 unit = "mm"
 # Importance level for completing this measurement.
 priority = "should"
 # Why this value cannot be trusted from CAD alone.
-reason = "Bounding box is not the jaw opening."
+reason = "The maximum opening is now measured as 70 mm, but the minimum/closed inner jaw distance is still unknown."
 # How to measure the value on the real robot.
-method = "Measure inner jaw distance open/closed with calipers."
+method = "Measure the inner jaw distance at the reliable closed position with calipers."
 
 [[items]]
 # Name of the required measurement.

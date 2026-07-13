@@ -1,6 +1,6 @@
 # Runtime settings for the kinematic solver only.
 # Vision should provide target coordinates already in robot-base coordinates.
-# Coordinate convention: X and Z form the horizontal plane; Y is distance downward from the top reference.
+# Coordinate convention: X is depth/forward, Z is lateral/right, and Y is distance downward from the top reference.
 
 # Version of this configuration file format.
 schema_version = "1.0"
@@ -36,15 +36,19 @@ base_angle_formula = "atan2(z_mm - base_z_mm, x_mm - base_x_mm)"
 
 [input_coordinates]
 # User target convention from Robot Coordinate System.pdf.
-x_axis = "left_right_mm"
-z_axis = "front_back_mm"
+x_axis = "depth_forward_mm"
+z_axis = "left_right_mm"
 y_axis = "distance_down_from_top_mm"
+# Positive X points forward from the box-depth center plane.
+x_positive_direction = "forward"
+# Positive Z points to the right.
+z_positive_direction = "right"
 # y_mm grows downward from the top reference, like a measured distance from the top.
 y_positive_direction = "down"
 # Distance from the top reference to the base/mounting plate height.
-max_height_mm = 1000.0
+max_height_mm = 500.0
 # Center of the base rotation axis at the base/mounting plate height: x=0, y=max_height, z=0.
-base_rotation_axis_at_mounting_plate_mm = [0.0, 1000.0, 0.0]
+base_rotation_axis_at_mounting_plate_mm = [0.0, 500.0, 0.0]
 
 [ik]
 # Coordinate frame expected for inverse-kinematics input targets.
@@ -112,18 +116,43 @@ check_workspace_bounds = true
 # Check the side-view shape from 2D Arm Diagram.png: elbow back, wrist forward.
 check_side_view_orientation = true
 
+[physical_enclosure_mm]
+# Measurements from "Maße Roboter 1. Runde.md". These are the nominal box interior dimensions.
+height = 500.0
+depth = 400.0
+width = 360.0
+
+[elbow_clearance_mm]
+# Additional clearance beyond the nominal box depth. The front allowance varies by location.
+front_extra_min = 20.0
+front_extra_max = 40.0
+rear_extra = 20.0
+# The nominal target workspace below does not include this elbow-only clearance.
+
+[shelving_mm]
+# Distance downward from the box top at which the first shelf/compartment starts.
+first_shelf_from_top = 125.0
+# Clear height of each shelf compartment.
+compartment_height = 120.0
+# Thickness of each shelf floor.
+floor_thickness = 5.0
+# Shelf reference position along X, measured from the box-depth centerline.
+x_position_mm = 100.0
+# Shelves lie in the positive-X direction from the box-depth centerline.
+x_direction = "positive"
+
 [workspace_bounds_robot_base_mm]
-# Very rough placeholders. Replace after physical testing.
-# X and Z are horizontal. Y is height.
-# Minimum allowed X coordinate in robot-base space.
-x_min = -350.0
-# Maximum allowed X coordinate in robot-base space.
-x_max = 350.0
+# Measured nominal box interior. Elbow-only clearance is recorded separately above.
+# X is depth from the box-depth centerline, Z is lateral from the width centerline, and Y is distance from the top.
+# Rear edge of the nominal target workspace: 200 mm behind the X=0 center plane.
+x_min = -200.0
+# Front edge of the nominal target workspace: 200 mm in the positive-X/forward direction.
+x_max = 200.0
 # Minimum allowed Y distance downward from the top reference.
 y_min = 0.0
 # Maximum allowed Y distance downward from the top reference.
-y_max = 1000.0
-# Minimum allowed Z coordinate in robot-base space.
-z_min = -350.0
-# Maximum allowed Z coordinate in robot-base space.
-z_max = 350.0
+y_max = 500.0
+# Left edge of the 360 mm wide box relative to its centerline.
+z_min = -180.0
+# Right edge of the 360 mm wide box relative to its centerline.
+z_max = 180.0

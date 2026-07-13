@@ -1,6 +1,7 @@
 """Simple inverse kinematics for the configured robot arm.
 
 Math model:
+- Runtime X is depth/forward and Z is lateral/right.
 - J1 turns the target into the arm plane: theta1 = atan2(z - base_z, x - base_x).
 - The arm plane uses r = sqrt(x^2 + z^2) and converts input y from
   "distance downward from the top" to math-y, where up is positive.
