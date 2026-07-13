@@ -1,18 +1,72 @@
 [build-system]
-requires = ["setuptools>=68"]
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
+
 
 [project]
 name = "robot-arm-kinematics"
 version = "0.0.1"
+description = "Kinematics, motion sequencing, workspace validation, and servo control for a Raspberry Pi-based pick-and-place robot arm."
+authors = [
+    { name = "Christoph Schnitzer", email = "snichc22@htl-kaindorf.at" },
+]
 requires-python = ">=3.11"
+license = "GPL-3.0-only"
+license-files = ["LICENSE"]
+keywords = [
+    "robotics",
+    "robot-arm",
+    "kinematics",
+    "inverse-kinematics",
+    "pick-and-place",
+    "raspberry-pi",
+    "pca9685",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Education",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering",
+]
 dependencies = [
+    "numpy>=2.5.1",
     "python-statemachine>=2.5,<3",
-    "numpy>=2.5.1"
 ]
 
+
 [project.optional-dependencies]
-dev = ["pytest"]
+dev = [
+    "pytest>=9,<10",
+]
+
+
+[project.urls]
+Homepage = "https://github.com/DiplomarbeitSC-fekdac22-snichc22/Kinematics"
+Repository = "https://github.com/DiplomarbeitSC-fekdac22-snichc22/Kinematics.git"
+Issues = "https://github.com/DiplomarbeitSC-fekdac22-snichc22/Kinematics/issues"
+
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+py-modules = ["api"]
+
 
 [tool.setuptools.packages.find]
 where = ["src"]
+include = [
+    "config*",
+    "kinematics*",
+    "state_machine*",
+]
+namespaces = false
+
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "-ra"
