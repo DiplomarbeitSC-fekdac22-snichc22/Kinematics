@@ -149,7 +149,7 @@ x_direction = "positive"
 # Rear edge: half the 400 mm enclosure depth plus 20 mm rear clearance.
 x_min = -220.0
 # Front edge: half the 400 mm enclosure depth plus the maximum 40 mm front clearance.
-x_max = 240.0
+x_max = 220.0
 # Minimum allowed Y distance downward from the top reference.
 y_min = 0.0
 # Maximum allowed Y distance downward from the top reference.
