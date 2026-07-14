@@ -135,7 +135,8 @@ def calculate_angles(x_mm: float, y_mm: float, z_mm: float, config_dir: Path | s
         checks = (("x", x_mm), ("y", y_mm), ("z", z_mm))
         for axis, value in checks:
             if not (bounds[f"{axis}_min"] <= value <= bounds[f"{axis}_max"]):
-                if axis == "x" and (bounds[f"{axis}_min"] <= value <= bounds[f"{axis}_max"] + settings["shelving_mm"]["x_position_mm"]):
+                if axis == "x" and (bounds[f"{axis}_min"] <= value <= bounds[f"{axis}_max"] + settings["shelving_mm"][
+                    "x_position_mm"]):
                     continue
                 else:
                     reasons.append(f"{axis}={value:.1f} mm outside workspace bounds")

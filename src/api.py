@@ -6,13 +6,8 @@ from state_machine.pick_and_place import (
 
 
 class RobotController:
-    def __init__(
-            self,
-            motion_sink: MotionCommandSink,
-    ) -> None:
-        self.machine = PickAndPlaceStateMachine(
-            sink=motion_sink,
-        )
+    def __init__(self, motion_sink: MotionCommandSink) -> None:
+        self.machine = PickAndPlaceStateMachine(sink=motion_sink)
 
     def start_pick_and_place(self, x_mm: float, y_mm: float, z_mm: float) -> None:
         self.machine.start_pick_and_place(

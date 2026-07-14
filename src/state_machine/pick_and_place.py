@@ -16,18 +16,22 @@ class TargetPosition:
     y_mm: float
     z_mm: float
 
+
 @dataclass(frozen=True)
 class MotionCommand:
     name: str
     pulses_us: dict[str, int]
 
+
 class MotionCommandSink(Protocol):
     def send(self, command: MotionCommand) -> None:
         ...
 
+
 class DryRunMotionSink:
     def send(self, command: MotionCommand) -> None:
         print(f"{command.name}: {command.pulses_us}")
+
 
 class PickAndPlaceStateMachine(StateMachine):
     idle = State("idle", initial=True)

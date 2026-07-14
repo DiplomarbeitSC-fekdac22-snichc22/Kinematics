@@ -9,10 +9,11 @@ def is_target_inside_workspace_bounds(x_mm: float, y_mm: float, z_mm: float) -> 
         return True
 
     return (
-        bounds["x_min"] <= x_mm <= bounds["x_max"]
-        and bounds["y_min"] <= y_mm <= bounds["y_max"]
-        and bounds["z_min"] <= z_mm <= bounds["z_max"]
+            bounds["x_min"] <= x_mm <= bounds["x_max"]
+            and bounds["y_min"] <= y_mm <= bounds["y_max"]
+            and bounds["z_min"] <= z_mm <= bounds["z_max"]
     )
+
 
 def are_joint_angles_inside_limits(joint_angles_deg: dict[str, float]) -> bool:
     kinematics = load_config("kinematics_settings.toml")
@@ -34,11 +35,12 @@ def are_joint_angles_inside_limits(joint_angles_deg: dict[str, float]) -> bool:
 
     return True
 
+
 def is_target_reachable(
-    x_mm: float,
-    y_mm: float,
-    z_mm: float,
-    joint_angles_deg: dict[str, float],
+        x_mm: float,
+        y_mm: float,
+        z_mm: float,
+        joint_angles_deg: dict[str, float],
 ) -> bool:
     if not is_target_inside_workspace_bounds(x_mm, y_mm, z_mm):
         return False
