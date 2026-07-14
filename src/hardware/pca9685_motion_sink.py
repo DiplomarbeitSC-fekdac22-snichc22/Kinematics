@@ -160,5 +160,27 @@ class Pca9685MotionSink:
 
         return outputs
 
-    def _create_default_hardware(self, pca_config):
-        pass
+    @staticmethod
+    def _create_default_hardware(self, pca_config: dict[str, Any]) -> tuple[Any, Any]:
+        try:
+            import board
+            import busio
+            from adafruit_pca9685 import PCA9685
+        except ImportError as exc:
+            raise RuntimeError(
+                "PCA9685 hardware support is not installed. "
+                "Install the project with the 'hardware' extra."
+            ) from exc
+
+        i2c = busio.I2C(board.SCL, board.SDA)
+
+        try:
+            pca = PCA9685(
+                i2c,
+                address=int(pca_config.get("i2c_address", 0x40)),
+            )
+        except Exception:
+            i2c.deinit()
+            raise
+
+        return i2c, pca
