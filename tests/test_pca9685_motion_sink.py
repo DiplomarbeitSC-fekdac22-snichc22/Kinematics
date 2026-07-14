@@ -102,3 +102,49 @@ def test_rejects_unknown_joint_names() -> None:
                 "J6_unknown": 1500,
             }
         ))
+
+def test_rejects_non_integer_pulses() -> None:
+    sink, _ = make_sink()
+
+    with pytest.raises(TypeError, match="integer of microseconds"):
+        sink.send(FakeMotionCommand(
+            name="wrong_type",
+            pulses_us={
+                "J1_base": 1500.0,
+            }
+        ))
+
+def test_disable_all_clears_all_outputs() -> None:
+    sink, pca = make_sink()
+
+    for channel in pca.channels:
+        channel.duty_cycle = 65535
+
+    sink.disable_all()
+
+    assert all(
+        channel.duty_cycle == 0
+        for channel in pca.channels
+    )
+
+def test_close_disables_outputs_and_prevents_commands() -> None:
+    sink, pca = make_sink()
+
+    pca.channels[0].duty_cycle = 4912
+
+    sink.close()
+
+    sink.close()
+
+    assert all(
+        channel.duty_cycle == 0
+        for channel in pca.channels
+    )
+
+    with pytest.raises(RuntimeError, match="closed"):
+        sink.send(FakeMotionCommand(
+            name="after_close",
+            pulses_us={
+                "J1_base": 1500,
+            }
+        ))
