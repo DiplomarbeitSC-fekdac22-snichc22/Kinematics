@@ -1,9 +1,11 @@
 from dataclasses import dataclass
 from math import isclose
+from numbers import Integral
 from pathlib import Path
 from typing import Any
 
 from config.config_loader import DEFAULT_CONFIG_DIR, load_config
+from state_machine.pick_and_place import MotionCommand
 
 _EXPECTED_JOINTS = (
     "J1_base",
@@ -72,6 +74,42 @@ class Pca9685MotionSink:
     def frequency_hz(self) -> float:
         """Return the configured PCA9685 PWM frequency."""
         return self._frequency_hz
+
+    def send(self, command: MotionCommand) -> None:
+        """Validate and send one command."""
+        self._ensure_open()
+
+        writes: list[tuple[int, int]] = []
+
+        for joint_name, pulse_us in command.pulses_us.items():
+            output = self._joint_outputs.get(joint_name)
+
+            if output is None:
+                raise KeyError(f"Unknown servo output: {joint_name}")
+
+            if isinstance(pulse_us, bool) or not isinstance(pulse_us, Integral):
+                raise TypeError(
+                    f"Pulse for {joint_name} must be an integer of "
+                    f"microseconds; got {type(pulse_us).__name__}"
+                )
+
+            duty_cycle = self.pulse_us_to_duty_cycle(pulse_us)
+
+            writes.append(output.channel, duty_cycle)
+
+        for channel, duty_cycle in writes:
+            self._pca.channels[channel].duty_cycle = duty_cycle
+
+    def pulse_us_to_duty_cycle(self, pulse_us: int) -> int:
+        """Convert a pulse width in microseconds to a PCA9685 duty cycle."""
+        pulse_count = round(pulse_us / self._period_us * self._resolution_counts)
+
+        if not 0 <= pulse_count < self._resolution_counts:
+            raise ValueError(f"Pulse width produces invalid count: {pulse_us} us -> {pulse_count}")
+
+        scale = (_CIRCUITPYTHON_DUTY_CYCLE_STEPS // self._resolution_counts)
+
+        return pulse_count * scale
 
     def _validate_pwm_config(self):
         if self._frequency_hz <= 0:
@@ -200,3 +238,7 @@ class Pca9685MotionSink:
             raise
 
         return i2c, pca
+
+    def _ensure_open(self) -> None:
+        if self._closed:
+            raise RuntimeError("Pca9685MotionSink is closed")
