@@ -71,7 +71,7 @@ function = "shoulder"
 # Servo model/type currently assumed for this joint.
 servo_type = "Miuzei_DS3218_20kg_class"
 # PCA9685 output channel connected to this servo.
-pca9685_channel = 1
+pca9685_channel = 2
 # Kinematic angle represented by this joint.
 kinematic_role = "theta2"
 # Mathematical angle corresponding to the configured center/zero reference.
@@ -103,7 +103,7 @@ function = "elbow"
 # Servo model/type currently assumed for this joint.
 servo_type = "Miuzei_DS3218_20kg_class"
 # PCA9685 output channel connected to this servo.
-pca9685_channel = 2
+pca9685_channel = 4
 # Kinematic angle represented by this joint.
 kinematic_role = "theta3"
 # Mathematical angle corresponding to the configured center/zero reference.
@@ -135,7 +135,7 @@ function = "wrist_pitch"
 # Servo model/type currently assumed for this joint.
 servo_type = "Miuzei_DS3218_20kg_class"
 # PCA9685 output channel connected to this servo.
-pca9685_channel = 3
+pca9685_channel = 6
 # Kinematic angle represented by this joint.
 kinematic_role = "theta4"
 # Mathematical angle corresponding to the configured center/zero reference.
@@ -167,7 +167,7 @@ function = "gripper"
 # Servo model/type currently assumed for the gripper.
 servo_type = "B2122_or_existing_gripper_servo"
 # PCA9685 output channel connected to the gripper servo.
-pca9685_channel = 4
+pca9685_channel = 8
 # Kinematic command represented by this servo.
 kinematic_role = "gripper_command"
 # Gripper is normally controlled by calibrated pulses, not IK angle.
