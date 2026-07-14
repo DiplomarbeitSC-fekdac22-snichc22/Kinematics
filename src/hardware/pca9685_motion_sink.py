@@ -11,6 +11,10 @@ _EXPECTED_JOINTS = (
     "J5_gripper",
 )
 
+_PCA9685_CHANNEL_COUNT = 16
+_PCA9685_RESOLUTION_COUNT = 4096
+_CIRCUITPYTHON_DUTY_CYCLE_STEPS = 65536
+
 class Pca9685MotionSink:
     """Send servo pulse commands to the PCA9685 board."""
     def __init__(
@@ -46,7 +50,17 @@ class Pca9685MotionSink:
         self._pca.frequency = self._frequency_hz
 
     def _validate_pwm_config(self):
-        pass
+        if self._frequency_hz <= 0:
+            raise ValueError("PCA9685 frequency must be positive")
+
+        if self._resolution_counts != _PCA9685_RESOLUTION_COUNT:
+            raise ValueError(f"PCA9685 resolution count must be {_PCA9685_RESOLUTION_COUNT}")
+
+        if not 1 <= self._channel_count <= _PCA9685_CHANNEL_COUNT:
+            raise ValueError(f"PCA9685 channel count must be between 1 and {_PCA9685_CHANNEL_COUNT}")
+
+        if _CIRCUITPYTHON_DUTY_CYCLE_STEPS % self._resolution_counts != 0:
+            raise ValueError("PCA9685 resolution count must evenly divide the CircuitPython duty cycle steps")
 
     def _build_joint_outputs(self, pca_config, servo_config):
         pass
