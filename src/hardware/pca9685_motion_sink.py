@@ -1,3 +1,5 @@
+from dataclasses import dataclass
+from math import isclose
 from pathlib import Path
 from typing import Any
 
@@ -14,6 +16,12 @@ _EXPECTED_JOINTS = (
 _PCA9685_CHANNEL_COUNT = 16
 _PCA9685_RESOLUTION_COUNT = 4096
 _CIRCUITPYTHON_DUTY_CYCLE_STEPS = 65536
+
+@dataclass(frozen=True)
+class _JointOutputs:
+    channel: int
+    safe_min_us: float
+    safe_max_us: float
 
 class Pca9685MotionSink:
     """Send servo pulse commands to the PCA9685 board."""
@@ -62,8 +70,95 @@ class Pca9685MotionSink:
         if _CIRCUITPYTHON_DUTY_CYCLE_STEPS % self._resolution_counts != 0:
             raise ValueError("PCA9685 resolution count must evenly divide the CircuitPython duty cycle steps")
 
-    def _build_joint_outputs(self, pca_config, servo_config):
-        pass
+    def _build_joint_outputs(
+            self,
+            pca_config: dict[str, Any],
+            servo_config: dict[str, Any]
+    ) -> dict[str, _JointOutputs]:
+        channel_map = pca_config["channel_map"]
+        joints = servo_config["joints"]
+        defaults = servo_config["defaults"]
+
+        missing_channels = set(_EXPECTED_JOINTS) - set(channel_map)
+        missing_calibration = set(_EXPECTED_JOINTS) - set(joints)
+
+        if missing_channels:
+            raise KeyError(f"Missing PCA9685 channel mappings: {missing_channels}")
+
+        if missing_calibration:
+            raise KeyError(f"Missing PCA9685 calibration entries: {missing_calibration}")
+
+        servo_frequency_hz = float(defaults["pwm_frequency_hz"])
+
+        if not isclose(
+            servo_frequency_hz,
+            self._frequency_hz,
+            rel_tol=0.0,
+            abs_tol=0.01,
+        ):
+            raise ValueError(
+                "PWM frequency mismatch: pca9685.toml uses "
+                f"{self._frequency_hz} Hz; "
+                "servo_calibration.toml uses "
+                f"{servo_frequency_hz} Hz"
+            )
+
+        electrical_min = int(defaults["pulse_electrical_min_us"])
+        electrical_max = int(defaults["pulse_electrical_max_us"])
+
+        use_initial_range = bool(defaults.get("clamp_to_initial_safe_range", False))
+
+        initial_min = int(defaults["pulse_initial_safe_min_us"])
+        initial_max = int(defaults["pulse_initial_safe_max_us"])
+
+        outputs: dict[str, _JointOutputs] = {}
+        used_channels: set[int] = set()
+
+        for joint_name in _EXPECTED_JOINTS:
+            joint_config = joints[joint_name]
+
+            channel = int(channel_map[joint_name])
+            calibration_channel = int(joint_config["pca9685_channel"])
+
+            if channel != calibration_channel:
+                raise ValueError(
+                    f"Channel mismatch for {joint_name}: "
+                    f"pca9685.toml uses {channel}; "
+                    f"servo_calibration.toml uses {calibration_channel}"
+                )
+
+            if not 0 <= channel < self._channel_count:
+                raise ValueError(f"Configured channel for {joint_name} is out of range")
+
+            if channel in used_channels:
+                raise ValueError(f"PCA9685 channel {channel} is already used")
+
+            used_channels.add(channel)
+
+            safe_min = max(
+                int(joint_config["pulse_min_us"]),
+                electrical_min,
+            )
+
+            safe_max = min(
+                int(joint_config["pulse_max_us"]),
+                electrical_max,
+            )
+
+            if use_initial_range:
+                safe_min = max(safe_min, initial_min)
+                safe_max = min(safe_max, initial_max)
+
+            if safe_min > safe_max:
+                raise ValueError(f"Configured pulse ranges do not overlap for {joint_name}")
+
+            outputs[joint_name] = _JointOutputs(
+                channel=channel,
+                safe_min_us=safe_min,
+                safe_max_us=safe_max
+            )
+
+        return outputs
 
     def _create_default_hardware(self, pca_config):
         pass
