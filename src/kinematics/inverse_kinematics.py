@@ -135,7 +135,10 @@ def calculate_angles(x_mm: float, y_mm: float, z_mm: float, config_dir: Path | s
         checks = (("x", x_mm), ("y", y_mm), ("z", z_mm))
         for axis, value in checks:
             if not (bounds[f"{axis}_min"] <= value <= bounds[f"{axis}_max"]):
-                reasons.append(f"{axis}={value:.1f} mm outside workspace bounds")
+                if axis == "x" and (bounds[f"{axis}_min"] <= value <= bounds[f"{axis}_max"] + settings["shelving_mm"]["x_position_mm"]):
+                    continue
+                else:
+                    reasons.append(f"{axis}={value:.1f} mm outside workspace bounds")
 
     if validation.get("check_side_view_orientation", False):
         if preference == "elbow_back" and elbow_r > 0.0:
