@@ -95,7 +95,7 @@ class Pca9685MotionSink:
 
             duty_cycle = self.pulse_us_to_duty_cycle(pulse_us)
 
-            writes.append(output.channel, duty_cycle)
+            writes.append((output.channel, duty_cycle))
 
         for channel, duty_cycle in writes:
             self._pca.channels[channel].duty_cycle = duty_cycle
@@ -110,6 +110,36 @@ class Pca9685MotionSink:
         scale = (_CIRCUITPYTHON_DUTY_CYCLE_STEPS // self._resolution_counts)
 
         return pulse_count * scale
+
+    def disable_all(self) -> None:
+        """Disable all servo outputs."""
+        self._ensure_open()
+
+        for channel in range(self._channel_count):
+            self._pca.channels[channel].duty_cycle = 0
+
+    def close(self) -> None:
+        """Disable outputs and release hardware resources."""
+        if self._closed:
+            return
+
+        try:
+            self.disable_all()
+        finally:
+            try:
+                if self._owns_hardware:
+                    self._pca.deinit()
+            finally:
+                if self._owns_hardware and self._i2c is not None:
+                    self._i2c.deinit()
+
+                self._closed = True
+
+    def __enter__(self) -> "Pca9685MotionSink":
+        return self
+
+    def __exit__(self, *_: object) -> None:
+        self.close()
 
     def _validate_pwm_config(self):
         if self._frequency_hz <= 0:
@@ -215,7 +245,7 @@ class Pca9685MotionSink:
         return outputs
 
     @staticmethod
-    def _create_default_hardware(self, pca_config: dict[str, Any]) -> tuple[Any, Any]:
+    def _create_default_hardware(pca_config: dict[str, Any]) -> tuple[Any, Any]:
         try:
             import board
             import busio
