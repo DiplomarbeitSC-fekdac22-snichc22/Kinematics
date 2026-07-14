@@ -17,14 +17,17 @@ _PCA9685_CHANNEL_COUNT = 16
 _PCA9685_RESOLUTION_COUNT = 4096
 _CIRCUITPYTHON_DUTY_CYCLE_STEPS = 65536
 
+
 @dataclass(frozen=True)
 class _JointOutputs:
     channel: int
     safe_min_us: float
     safe_max_us: float
 
+
 class Pca9685MotionSink:
     """Send servo pulse commands to the PCA9685 board."""
+
     def __init__(
             self,
             pca: Any | None = None,
@@ -56,6 +59,19 @@ class Pca9685MotionSink:
             self._pca = pca
 
         self._pca.frequency = self._frequency_hz
+
+    @property
+    def channel_map(self) -> dict[str, int]:
+        """Return a copy of the configured joint to PCA9685 channel mapping."""
+        return {
+            joint_name: output.channel
+            for joint_name, output in self._joint_outputs.items()
+        }
+
+    @property
+    def frequency_hz(self) -> float:
+        """Return the configured PCA9685 PWM frequency."""
+        return self._frequency_hz
 
     def _validate_pwm_config(self):
         if self._frequency_hz <= 0:
@@ -91,10 +107,10 @@ class Pca9685MotionSink:
         servo_frequency_hz = float(defaults["pwm_frequency_hz"])
 
         if not isclose(
-            servo_frequency_hz,
-            self._frequency_hz,
-            rel_tol=0.0,
-            abs_tol=0.01,
+                servo_frequency_hz,
+                self._frequency_hz,
+                rel_tol=0.0,
+                abs_tol=0.01,
         ):
             raise ValueError(
                 "PWM frequency mismatch: pca9685.toml uses "
