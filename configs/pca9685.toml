@@ -2,7 +2,13 @@
 # This is hardware-adjacent, but included because kinematics output must eventually become servo pulse/count commands.
 
 # Version of this configuration file format.
-schema_version = "1.0"
+schema_version = "1.1"
+
+# Default PCA9685 I2C address.
+i2c_address = 0x40
+# Number of physical PCA9685 output channels.
+channel_count = 16
+
 # PWM update frequency used by the PCA9685 board.
 frequency_hz = 50
 # Number of discrete counter values in one PWM period.
@@ -16,6 +22,8 @@ formula_pulse_to_count = "round(pulse_us / period_us * resolution_counts)"
 # Formula for converting a PCA9685 count value back to pulse width in microseconds.
 formula_count_to_pulse = "count / resolution_counts * period_us"
 
+formula_count_to_duty_cycle = "count * (65536 / resolution_counts)"
+
 [examples]
 # Example PCA9685 count for a 500 us pulse.
 count_at_500_us = 102
@@ -24,20 +32,21 @@ count_at_1500_us = 307
 # Example PCA9685 count for a 2500 us pulse.
 count_at_2500_us = 512
 
+duty_cycle_at_1500_us = 4912
+
 [channel_map]
 # PCA9685 channel connected to the base servo.
 J1_base = 0
 # PCA9685 channel connected to the shoulder servo.
-J2_shoulder = 1
+J2_shoulder = 2
 # PCA9685 channel connected to the elbow servo.
-J3_elbow = 2
+J3_elbow = 4
 # PCA9685 channel connected to the wrist servo.
-J4_wrist = 3
+J4_wrist = 6
 # PCA9685 channel connected to the gripper servo.
-J5_gripper = 4
+J5_gripper = 8
 
 [notes]
-# Current confidence/status of the channel mapping above.
-channel_map_status = "provisional"
-# Reminder text shown to developers/operators before enabling real servo output.
-text = "Verify the actual PCA9685 channel wiring before enabling real servo output."
+channel_map_status = "matched_to_existing_robot_controller_configuration"
+
+text = "Verify servo direction and mechanical pulse limits before unattended operation."
