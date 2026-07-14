@@ -93,6 +93,15 @@ class Pca9685MotionSink:
                     f"microseconds; got {type(pulse_us).__name__}"
                 )
 
+            pulse_us = int(pulse_us)
+
+            if not output.safe_min_us <= pulse_us <= output.safe_max_us:
+                raise ValueError(
+                    f"Pulse for {joint_name} in command {command.name!r} is "
+                    f"outside the configured safe range: {pulse_us} us not in "
+                    f"[{output.safe_min_us}, {output.safe_max_us}] us"
+                )
+
             duty_cycle = self.pulse_us_to_duty_cycle(pulse_us)
 
             writes.append((output.channel, duty_cycle))

@@ -4,3 +4,4 @@ python-statemachine
 matplotlib
 board
 adafruit-pca9685
+pytest
