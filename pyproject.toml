@@ -35,13 +35,18 @@ classifiers = [
 ]
 dependencies = [
     "numpy>=2.5.1",
-    "python-statemachine>=2.5,<3",
+    "python-statemachine>=2.5",
 ]
 
 
 [project.optional-dependencies]
 dev = [
     "pytest>=9,<10",
+]
+
+hardware = [
+    "adafruit-blinka",
+    "adafruit-circuitpython-pca9685",
 ]
 
 
@@ -60,6 +65,7 @@ py-modules = ["api"]
 where = ["src"]
 include = [
     "config*",
+    "hardware*",
     "kinematics*",
     "state_machine*",
 ]
