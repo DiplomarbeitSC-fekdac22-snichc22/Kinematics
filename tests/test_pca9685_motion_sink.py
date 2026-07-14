@@ -79,3 +79,26 @@ def test_invalid_pulse_does_not_particularly_update_outputs() -> None:
     # J1 was valid, but it must not have been written because J2 was invalid
     assert pca.channels[0].duty_cycle == 1234
     assert pca.channels[2].duty_cycle == 0
+
+@pytest.mark.parametrize("pulse_us", [999, 2001])
+def test_rejects_pulses_outside_safe_range(pulse_us: int) -> None:
+    sink, _ = make_sink()
+
+    with pytest.raises(ValueError, match="configured safe range"):
+        sink.send(FakeMotionCommand(
+            name="unsafe",
+            pulses_us={
+                "J3_elbow": pulse_us,
+            }
+        ))
+
+def test_rejects_unknown_joint_names() -> None:
+    sink, _ = make_sink()
+
+    with pytest.raises(KeyError, match="Unknown servo output"):
+        sink.send(FakeMotionCommand(
+            name="unknown",
+            pulses_us={
+                "J6_unknown": 1500,
+            }
+        ))
