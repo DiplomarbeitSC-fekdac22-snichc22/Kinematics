@@ -4,11 +4,11 @@ from __future__ import annotations
 
 
 def robot_to_webots(
-    x_mm: float,
-    y_mm: float,
-    z_mm: float,
-    *,
-    top_reference_height_mm: float = 500.0,
+        x_mm: float,
+        y_mm: float,
+        z_mm: float,
+        *,
+        top_reference_height_mm: float = 500.0,
 ) -> tuple[float, float, float]:
     """Convert X-forward/Z-right/Y-down millimetres to Webots metres.
 
@@ -23,11 +23,11 @@ def robot_to_webots(
 
 
 def webots_to_robot(
-    x_m: float,
-    y_m: float,
-    z_m: float,
-    *,
-    top_reference_height_mm: float = 500.0,
+        x_m: float,
+        y_m: float,
+        z_m: float,
+        *,
+        top_reference_height_mm: float = 500.0,
 ) -> tuple[float, float, float]:
     """Convert Webots X-forward/Y-left/Z-up metres to robot millimetres."""
     return (

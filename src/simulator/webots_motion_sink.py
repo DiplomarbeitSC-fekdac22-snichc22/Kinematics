@@ -83,10 +83,10 @@ class WebotsMotionSink:
     """
 
     def __init__(
-        self,
-        robot: _Robot,
-        *,
-        config_dir: Path | str = DEFAULT_CONFIG_DIR,
+            self,
+            robot: _Robot,
+            *,
+            config_dir: Path | str = DEFAULT_CONFIG_DIR,
     ) -> None:
         self.robot = robot
         self.config_dir = Path(config_dir)
@@ -163,11 +163,11 @@ class WebotsMotionSink:
             allow_contact = pulse_us == self.gripper.closed_pulse_us
 
             for index, (motor, sensor) in enumerate(
-                zip(
-                    self.gripper.motors,
-                    self.gripper.sensors,
-                    strict=True,
-                )
+                    zip(
+                        self.gripper.motors,
+                        self.gripper.sensors,
+                        strict=True,
+                    )
             ):
                 targets.append(
                     _SettleTarget(
@@ -219,6 +219,7 @@ class WebotsMotionSink:
 
     def _bind_arm_joints(self) -> dict[str, _JointBinding]:
         bindings: dict[str, _JointBinding] = {}
+        ready = self.poses["poses"]["ready"]
 
         for joint_name, config in self.simulation["joints"].items():
             motor = self._require_device(str(config["motor_device"]))
@@ -226,7 +227,7 @@ class WebotsMotionSink:
             motor.setVelocity(float(config["max_velocity_rad_s"]))
             sensor.enable(self.time_step_ms)
 
-            bindings[joint_name] = _JointBinding(
+            binding = _JointBinding(
                 motor=motor,
                 sensor=sensor,
                 sign=float(config["kinematic_to_webots_sign"]),
@@ -234,6 +235,17 @@ class WebotsMotionSink:
                     config["kinematic_to_webots_offset_deg"]
                 ),
                 tolerance=float(config["position_tolerance_rad"]),
+            )
+            bindings[joint_name] = binding
+
+            # Webots motors otherwise retain their default target for the
+            # initialization step below. Set the PROTO-synchronized ready
+            # target before physics advances for the first time.
+            motor.setPosition(
+                radians(
+                    binding.offset_deg
+                    + binding.sign * float(ready[joint_name])
+                )
             )
 
         return bindings
@@ -251,15 +263,21 @@ class WebotsMotionSink:
             self._require_device(str(config["right_sensor_device"])),
         )
 
+        open_position = float(config["open_slider_position_m"])
+
         for motor in motors:
             motor.setVelocity(float(config["max_velocity_m_s"]))
+            # The default LinearMotor target is zero, which lies beyond this
+            # model's 0.010 m closed stop. Assign the valid open target before
+            # __init__ performs its first Webots step.
+            motor.setPosition(open_position)
         for sensor in sensors:
             sensor.enable(self.time_step_ms)
 
         return _GripperBinding(
             motors=motors,
             sensors=sensors,
-            open_position=float(config["open_slider_position_m"]),
+            open_position=open_position,
             closed_position=float(config["closed_slider_position_m"]),
             tolerance=float(config["position_tolerance_m"]),
             open_pulse_us=int(commands["open_pulse_us"]),
@@ -273,7 +291,7 @@ class WebotsMotionSink:
         )
 
     def _enable_environment_sensors(
-        self,
+            self,
     ) -> tuple[dict[str, Any], Any]:
         config = self.simulation["devices"]
         period = int(config["sensor_period_ms"])
@@ -291,13 +309,13 @@ class WebotsMotionSink:
         return cameras, tof
 
     def _command_angle(
-        self,
-        command: MotionCommand,
-        joint_name: str,
+            self,
+            command: MotionCommand,
+            joint_name: str,
     ) -> float | None:
         if (
-            command.joint_angles_deg is not None
-            and joint_name in command.joint_angles_deg
+                command.joint_angles_deg is not None
+                and joint_name in command.joint_angles_deg
         ):
             return float(command.joint_angles_deg[joint_name])
 
@@ -314,33 +332,33 @@ class WebotsMotionSink:
             )
 
         return float(joint["theta_zero_deg"]) + (
-            float(command.pulses_us[joint_name])
-            - float(joint["pulse_center_us"])
+                float(command.pulses_us[joint_name])
+                - float(joint["pulse_center_us"])
         ) / (direction * scale)
 
     def _gripper_position(self, pulse_us: int) -> float:
         pulse_span = (
-            self.gripper.closed_pulse_us
-            - self.gripper.open_pulse_us
+                self.gripper.closed_pulse_us
+                - self.gripper.open_pulse_us
         )
 
         if pulse_span == 0:
             raise ValueError("Gripper open and closed pulses must differ")
 
         fraction_closed = (
-            pulse_us - self.gripper.open_pulse_us
-        ) / pulse_span
+                                  pulse_us - self.gripper.open_pulse_us
+                          ) / pulse_span
         fraction_closed = max(0.0, min(1.0, fraction_closed))
 
         return self.gripper.open_position + fraction_closed * (
-            self.gripper.closed_position
-            - self.gripper.open_position
+                self.gripper.closed_position
+                - self.gripper.open_position
         )
 
     def _wait_until_settled(
-        self,
-        command_name: str,
-        targets: list[_SettleTarget],
+            self,
+            command_name: str,
+            targets: list[_SettleTarget],
     ) -> None:
         maximum_steps = max(
             1,
@@ -373,17 +391,17 @@ class WebotsMotionSink:
             ]
 
             if all(
-                self._target_is_settled(
-                    target,
-                    position,
-                    previous_position,
-                )
-                for target, position, previous_position in zip(
-                    targets,
-                    positions,
-                    previous_positions,
-                    strict=True,
-                )
+                    self._target_is_settled(
+                        target,
+                        position,
+                        previous_position,
+                    )
+                    for target, position, previous_position in zip(
+                        targets,
+                        positions,
+                        previous_positions,
+                        strict=True,
+                    )
             ):
                 settled_steps += 1
                 if settled_steps >= settled_steps_required:
@@ -418,9 +436,9 @@ class WebotsMotionSink:
 
     @staticmethod
     def _target_is_settled(
-        target: _SettleTarget,
-        position: float,
-        previous_position: float,
+            target: _SettleTarget,
+            position: float,
+            previous_position: float,
     ) -> bool:
         if not isfinite(position):
             return False
@@ -437,16 +455,16 @@ class WebotsMotionSink:
 
         direction = 1.0 if requested_motion > 0.0 else -1.0
         progress = (
-            position - target.initial_position
-        ) * direction
+                           position - target.initial_position
+                   ) * direction
         stable_against_contact = (
-            abs(position - previous_position)
-            <= target.contact_stability_delta
+                abs(position - previous_position)
+                <= target.contact_stability_delta
         )
 
         return (
-            progress >= target.contact_minimum_motion
-            and stable_against_contact
+                progress >= target.contact_minimum_motion
+                and stable_against_contact
         )
 
     def _step_or_raise(self) -> None:

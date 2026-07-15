@@ -9,9 +9,9 @@ CONFIG_DIR = ROOT / "configs"
 
 
 def _angle_for_role(
-    joint_angles_deg: dict[str, float],
-    servo_config: dict[str, Any],
-    role: str,
+        joint_angles_deg: dict[str, float],
+        servo_config: dict[str, Any],
+        role: str,
 ) -> float:
     for joint_name, joint_config in servo_config["joints"].items():
         if joint_config.get("kinematic_role") == role:
@@ -24,8 +24,8 @@ def _angle_for_role(
 
 
 def calculate_gripper_center(
-    joint_angles_deg: dict[str, float],
-    config_dir: Path | str = CONFIG_DIR,
+        joint_angles_deg: dict[str, float],
+        config_dir: Path | str = CONFIG_DIR,
 ) -> dict[str, float]:
     """Calculate the commanded gripper-center position."""
     config_dir = Path(config_dir)
@@ -77,21 +77,21 @@ def calculate_gripper_center(
     )
 
     elbow_relative_angle = elbow_relative_sign * (
-        radians(180.0) - theta3
+            radians(180.0) - theta3
     )
     forearm_angle = theta2 + elbow_relative_angle
     gripper_approach_angle = forearm_angle + theta4
 
     radial_mm = (
-        l1 * cos(theta2)
-        + l2 * cos(forearm_angle)
-        + lg * cos(gripper_approach_angle)
+            l1 * cos(theta2)
+            + l2 * cos(forearm_angle)
+            + lg * cos(gripper_approach_angle)
     )
 
     gripper_y_math_mm = (
-        l1 * sin(theta2)
-        + l2 * sin(forearm_angle)
-        + lg * sin(gripper_approach_angle)
+            l1 * sin(theta2)
+            + l2 * sin(forearm_angle)
+            + lg * sin(gripper_approach_angle)
     )
 
     max_height = float(

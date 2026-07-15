@@ -162,9 +162,9 @@ def calculate_angles(x_mm: float, y_mm: float, z_mm: float, config_dir: Path | s
             joint = servo["joints"][joint_name]
             raw_pulse = angle_to_pwm_unclamped(angle, joint)
             if not (
-                joint["pulse_min_us"]
-                <= raw_pulse
-                <= joint["pulse_max_us"]
+                    joint["pulse_min_us"]
+                    <= raw_pulse
+                    <= joint["pulse_max_us"]
             ):
                 reasons.append(
                     f"{joint_name} requires {raw_pulse:.0f} us outside "

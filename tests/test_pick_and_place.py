@@ -56,6 +56,10 @@ class PickAndPlaceRegressionTests(unittest.TestCase):
         self.assertAlmostEqual(ready.gripper_center_mm["x_mm"], 200.0, places=7)
         self.assertAlmostEqual(ready.gripper_center_mm["y_mm"], 140.0, places=7)
         self.assertAlmostEqual(ready.gripper_center_mm["z_mm"], 0.0, places=7)
+        self.assertEqual(ready.pulses_us["J5_gripper"], 1200)
+
+        home = next(command for command in sink.commands if command.name == "move_home")
+        self.assertEqual(home.pulses_us["J5_gripper"], 1200)
 
         deposit = next(command for command in sink.commands if command.name == "move_deposit")
         self.assertIsNotNone(deposit.joint_angles_deg)

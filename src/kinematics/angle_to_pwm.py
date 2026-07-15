@@ -8,9 +8,9 @@ def clamp_angle(value: float, low: float, high: float) -> float:
 def angle_to_pwm_unclamped(angle_deg: float, joint: dict[str, Any]) -> float:
     """Return the calibrated pulse before applying electrical endpoints."""
     return joint["pulse_center_us"] + (
-        (angle_deg - joint["theta_zero_deg"])
-        * joint["direction"]
-        * joint["us_per_degree"]
+            (angle_deg - joint["theta_zero_deg"])
+            * joint["direction"]
+            * joint["us_per_degree"]
     )
 
 

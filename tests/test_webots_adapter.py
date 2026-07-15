@@ -11,7 +11,6 @@ from simulator.coordinate_frames import robot_to_webots, webots_to_robot
 from simulator.webots_motion_sink import WebotsMotionSink
 from state_machine.pick_and_place import MotionCommand
 
-
 ROOT = Path(__file__).resolve().parents[1]
 CONFIG_DIR = ROOT / "configs"
 
@@ -67,12 +66,12 @@ class FakeRobot:
         self.steps = 0
 
         for joint in (
-            "J1_base",
-            "J2_shoulder",
-            "J3_elbow",
-            "J4_wrist",
-            "J5_gripper_left",
-            "J5_gripper_right",
+                "J1_base",
+                "J2_shoulder",
+                "J3_elbow",
+                "J4_wrist",
+                "J5_gripper_left",
+                "J5_gripper_right",
         ):
             sensor = FakePositionSensor()
             motor = FakeMotor(sensor)
@@ -114,10 +113,10 @@ class ContactFakeRobot(FakeRobot):
         self.steps += 1
 
         for joint in (
-            "J1_base",
-            "J2_shoulder",
-            "J3_elbow",
-            "J4_wrist",
+                "J1_base",
+                "J2_shoulder",
+                "J3_elbow",
+                "J4_wrist",
         ):
             motor = self.devices[joint]
             motor.sensor.value = motor.position
@@ -159,6 +158,23 @@ def test_webots_joint_and_gripper_mapping() -> None:
     assert robot.devices["J5_gripper_left"].position == pytest.approx(0.040)
     assert robot.devices["J5_gripper_right"].position == pytest.approx(0.040)
     assert sink.sensor_snapshot()["tof_center_m"] == pytest.approx(0.5)
+
+
+def test_webots_initializes_valid_targets_before_its_first_step() -> None:
+    robot = FakeRobot()
+    WebotsMotionSink(robot, config_dir=CONFIG_DIR)
+
+    assert robot.steps == 1
+    assert robot.devices["J5_gripper_left"].position == pytest.approx(0.040)
+    assert robot.devices["J5_gripper_right"].position == pytest.approx(0.040)
+
+    ready = load_config("poses.toml", CONFIG_DIR)["poses"]["ready"]
+    assert robot.devices["J2_shoulder"].position == pytest.approx(
+        float(ready["J2_shoulder"]) * pi / 180.0
+    )
+    assert robot.devices["J3_elbow"].position == pytest.approx(
+        (180.0 - float(ready["J3_elbow"])) * pi / 180.0
+    )
 
 
 def test_webots_can_invert_recorded_pwm_when_angles_are_absent() -> None:
@@ -223,20 +239,22 @@ def test_webots_model_config_matches_primary_robot_configs() -> None:
     assert model["link_2_mm"] == links["L2_elbow_to_wrist"]
     assert model["tool_length_mm"] == links["Lg_selected"]
     assert (
-        model["maximum_gripper_opening_mm"]
-        == geometry["gripper_geometry"]["max_opening_width_mm"]
+            model["maximum_gripper_opening_mm"]
+            == geometry["gripper_geometry"]["max_opening_width_mm"]
     )
     assert (
-        simulation["coordinate_mapping"]["top_reference_height_mm"]
-        == settings["input_coordinates"]["max_height_mm"]
+            simulation["coordinate_mapping"]["top_reference_height_mm"]
+            == settings["input_coordinates"]["max_height_mm"]
     )
     assert model["shoulder_distance_below_roof_mm"] == pytest.approx(68.25)
     assert model["shoulder_height_from_floor_mm"] == pytest.approx(431.75)
 
     gripper = simulation["gripper"]
+    assert gripper["max_acceleration_m_s2"] == pytest.approx(0.10)
+    assert gripper["max_force_n"] == pytest.approx(1.0)
     opening_m = 2.0 * (
-        gripper["open_slider_position_m"]
-        - gripper["jaw_half_width_m"]
+            gripper["open_slider_position_m"]
+            - gripper["jaw_half_width_m"]
     )
     assert opening_m * 1000.0 == pytest.approx(
         model["maximum_gripper_opening_mm"]

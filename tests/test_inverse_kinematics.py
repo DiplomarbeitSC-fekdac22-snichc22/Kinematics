@@ -51,8 +51,8 @@ class InverseKinematicsRegressionTests(unittest.TestCase):
 
     def test_inverse_and_forward_kinematics_round_trip(self) -> None:
         for target in (
-            (230.0, 180.0, 60.0),
-            (0.0, 370.0, 130.0),
+                (230.0, 180.0, 60.0),
+                (0.0, 370.0, 130.0),
         ):
             with self.subTest(target=target):
                 result = calculate_angles(*target)

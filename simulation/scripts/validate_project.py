@@ -9,7 +9,6 @@ import tomllib
 from math import radians
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[2]
 SIMULATION = ROOT / "simulation"
 WORLD = SIMULATION / "worlds" / "robot_arm_pick_and_place.wbt"
@@ -17,10 +16,10 @@ ROBOT_PROTO = SIMULATION / "protos" / "RobotArm.proto"
 WORKCELL_PROTO = SIMULATION / "protos" / "RobotWorkcell.proto"
 OBJECT_PROTO = SIMULATION / "protos" / "PickObject.proto"
 CONTROLLER = (
-    SIMULATION
-    / "controllers"
-    / "kinematics_webots"
-    / "kinematics_webots.py"
+        SIMULATION
+        / "controllers"
+        / "kinematics_webots"
+        / "kinematics_webots.py"
 )
 
 
@@ -98,8 +97,8 @@ def main() -> int:
     assert model["link_2_mm"] == links["L2_elbow_to_wrist"]
     assert model["tool_length_mm"] == links["Lg_selected"]
     assert (
-        simulation["coordinate_mapping"]["top_reference_height_mm"]
-        == settings["input_coordinates"]["max_height_mm"]
+            simulation["coordinate_mapping"]["top_reference_height_mm"]
+            == settings["input_coordinates"]["max_height_mm"]
     )
     top_reference_mm = float(
         simulation["coordinate_mapping"]["top_reference_height_mm"]
@@ -108,7 +107,7 @@ def main() -> int:
         model["shoulder_distance_below_roof_mm"]
     )
     expected_shoulder_height_mm = (
-        top_reference_mm - shoulder_below_roof_mm
+            top_reference_mm - shoulder_below_roof_mm
     )
     assert model["shoulder_height_from_floor_mm"] == expected_shoulder_height_mm
 
@@ -181,12 +180,23 @@ def main() -> int:
     # pose when physics starts.
     open_position = float(simulation["gripper"]["open_slider_position_m"])
     for expected in (
-        f"translation 0.119 {open_position:.3f} 0",
-        f"translation 0.119 {-open_position:.3f} 0",
+            f"translation 0.119 {open_position:.3f} 0",
+            f"translation 0.119 {-open_position:.3f} 0",
     ):
         if expected not in robot_text:
             raise AssertionError(
                 f"Gripper slider reference pose is inconsistent: {expected}"
+            )
+    gripper = simulation["gripper"]
+    motor_dynamics = (
+        f'acceleration {float(gripper["max_acceleration_m_s2"]):.2f}',
+        f'maxVelocity {float(gripper["max_velocity_m_s"]):.3f}',
+        f'maxForce {float(gripper["max_force_n"]):.1f}',
+    )
+    for expected in motor_dynamics:
+        if robot_text.count(expected) < 2:
+            raise AssertionError(
+                f"Gripper motor dynamics are not synchronized: {expected}"
             )
 
     tof = simulation["tof"]
@@ -204,7 +214,7 @@ def main() -> int:
 
     workcell_text = WORKCELL_PROTO.read_text(encoding="utf-8")
     x_max_m = (
-        float(settings["workspace_bounds_robot_base_mm"]["x_max"]) / 1000.0
+            float(settings["workspace_bounds_robot_base_mm"]["x_max"]) / 1000.0
     )
     shelf_depth_m = float(settings["shelving_mm"]["depth"]) / 1000.0
     shelf_center_m = x_max_m + shelf_depth_m / 2.0

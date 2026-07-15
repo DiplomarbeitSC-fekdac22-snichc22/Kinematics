@@ -362,10 +362,11 @@ PROTO RobotArm [
                                 device [
                                   LinearMotor {
                                     name "J5_gripper_left"
+                                    acceleration 0.10
                                     maxVelocity 0.020
                                     minPosition 0.010
                                     maxPosition 0.040
-                                    maxForce 15
+                                    maxForce 1.0
                                   }
                                   PositionSensor {
                                     name "J5_gripper_left_sensor"
@@ -411,10 +412,11 @@ PROTO RobotArm [
                                 device [
                                   LinearMotor {
                                     name "J5_gripper_right"
+                                    acceleration 0.10
                                     maxVelocity 0.020
                                     minPosition 0.010
                                     maxPosition 0.040
-                                    maxForce 15
+                                    maxForce 1.0
                                   }
                                   PositionSensor {
                                     name "J5_gripper_right_sensor"

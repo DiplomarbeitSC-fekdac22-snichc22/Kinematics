@@ -5,7 +5,7 @@ from config.config_loader import DEFAULT_CONFIG_DIR, load_config
 
 
 def shelf_compartment_y_ranges(
-    kinematics: dict[str, Any],
+        kinematics: dict[str, Any],
 ) -> tuple[tuple[float, float], ...]:
     """Return the clear Y intervals inside the shelf extension."""
     shelf = kinematics["shelving_mm"]
@@ -24,10 +24,10 @@ def shelf_compartment_y_ranges(
 
 
 def workspace_violation_reasons(
-    x_mm: float,
-    y_mm: float,
-    z_mm: float,
-    kinematics: dict[str, Any],
+        x_mm: float,
+        y_mm: float,
+        z_mm: float,
+        kinematics: dict[str, Any],
 ) -> list[str]:
     """Describe free-box or shelf-compartment workspace violations."""
     if not kinematics["validation"]["check_workspace_bounds"]:
@@ -38,9 +38,9 @@ def workspace_violation_reasons(
 
     for axis, value in (("y", y_mm), ("z", z_mm)):
         if not (
-            float(bounds[f"{axis}_min"])
-            <= value
-            <= float(bounds[f"{axis}_max"])
+                float(bounds[f"{axis}_min"])
+                <= value
+                <= float(bounds[f"{axis}_max"])
         ):
             reasons.append(
                 f"{axis}={value:.1f} mm outside workspace bounds"
@@ -54,8 +54,8 @@ def workspace_violation_reasons(
     shelf = kinematics["shelving_mm"]
     shelf_depth = float(shelf["depth"])
     inside_positive_shelf_depth = (
-        shelf["x_direction"] == "positive"
-        and x_max < x_mm <= x_max + shelf_depth
+            shelf["x_direction"] == "positive"
+            and x_max < x_mm <= x_max + shelf_depth
     )
 
     if inside_positive_shelf_depth:
@@ -76,10 +76,10 @@ def workspace_violation_reasons(
 
 
 def is_target_inside_workspace_bounds(
-    x_mm: float,
-    y_mm: float,
-    z_mm: float,
-    config_dir: Path | str = DEFAULT_CONFIG_DIR,
+        x_mm: float,
+        y_mm: float,
+        z_mm: float,
+        config_dir: Path | str = DEFAULT_CONFIG_DIR,
 ) -> bool:
     kinematics = load_config("kinematics_settings.toml", config_dir)
     return not workspace_violation_reasons(

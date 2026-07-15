@@ -12,15 +12,18 @@ class FakeChannel:
     def __init__(self, duty_cycle: int = 0) -> None:
         self.duty_cycle = duty_cycle
 
+
 class FakePca9685:
     def __init__(self) -> None:
         self.channels = [FakeChannel() for _ in range(16)]
         self.frequency: float | None = None
 
+
 @dataclass(frozen=True)
 class FakeMotionCommand:
     name: str
     pulses_us: dict[str, int]
+
 
 def make_sink() -> tuple[Pca9685MotionSink, FakePca9685]:
     pca = FakePca9685()
@@ -28,6 +31,7 @@ def make_sink() -> tuple[Pca9685MotionSink, FakePca9685]:
     sink = Pca9685MotionSink(pca, config_dir=CONFIG_DIR)
 
     return sink, pca
+
 
 def test_uses_existing_robot_controller_channel_mapping() -> None:
     sink, pca = make_sink()
@@ -41,6 +45,7 @@ def test_uses_existing_robot_controller_channel_mapping() -> None:
     }
 
     assert pca.frequency == 50
+
 
 def test_send_converts_microseconds_and_writes_channels() -> None:
     sink, pca = make_sink()
@@ -62,6 +67,7 @@ def test_send_converts_microseconds_and_writes_channels() -> None:
     # Unmentioned channels remain unchanged
     assert pca.channels[2].duty_cycle == 0
 
+
 def test_invalid_pulse_does_not_particularly_update_outputs() -> None:
     sink, pca = make_sink()
 
@@ -80,6 +86,7 @@ def test_invalid_pulse_does_not_particularly_update_outputs() -> None:
     assert pca.channels[0].duty_cycle == 1234
     assert pca.channels[2].duty_cycle == 0
 
+
 @pytest.mark.parametrize("pulse_us", [999, 2001])
 def test_rejects_pulses_outside_safe_range(pulse_us: int) -> None:
     sink, _ = make_sink()
@@ -92,6 +99,7 @@ def test_rejects_pulses_outside_safe_range(pulse_us: int) -> None:
             }
         ))
 
+
 def test_rejects_unknown_joint_names() -> None:
     sink, _ = make_sink()
 
@@ -103,6 +111,7 @@ def test_rejects_unknown_joint_names() -> None:
             }
         ))
 
+
 def test_rejects_non_integer_pulses() -> None:
     sink, _ = make_sink()
 
@@ -113,6 +122,7 @@ def test_rejects_non_integer_pulses() -> None:
                 "J1_base": 1500.0,
             }
         ))
+
 
 def test_disable_all_clears_all_outputs() -> None:
     sink, pca = make_sink()
@@ -126,6 +136,7 @@ def test_disable_all_clears_all_outputs() -> None:
         channel.duty_cycle == 0
         for channel in pca.channels
     )
+
 
 def test_close_disables_outputs_and_prevents_commands() -> None:
     sink, pca = make_sink()
