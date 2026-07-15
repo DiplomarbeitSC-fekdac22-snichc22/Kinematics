@@ -170,7 +170,7 @@ PROTO RobotArm [
             # a link that points along +X at zero degrees.
             HingeJoint {
               jointParameters HingeJointParameters {
-                position -1.720830
+                position -1.570796
                 axis 0 -1 0
                 anchor 0 0 0
                 minStop -2.356194
@@ -226,7 +226,7 @@ PROTO RobotArm [
                   # relative rotation of the roof-mounted elbow-back branch.
                   HingeJoint {
                     jointParameters HingeJointParameters {
-                      position 2.597030
+                      position 0.523599
                       axis 0 -1 0
                       anchor 0.200 0 0
                       minStop 0
@@ -276,7 +276,7 @@ PROTO RobotArm [
 
                         HingeJoint {
                           jointParameters HingeJointParameters {
-                            position -0.876200
+                            position 1.047198
                             axis 0 -1 0
                             anchor 0.164 0 0
                             minStop -1.047198
@@ -316,7 +316,7 @@ PROTO RobotArm [
                                   Shape {
                                     appearance USE DARK_METAL
                                     geometry Box {
-                                      size 0.045 0.075 0.035
+                                      size 0.025 0.075 0.035
                                     }
                                   }
                                 ]
@@ -383,7 +383,10 @@ PROTO RobotArm [
                                     # overlapped the housing and stopped this
                                     # slider several millimetres before open.
                                     Pose {
-                                      translation 0.035 0 0
+                                      # The jaw contact region is centred at
+                                      # wrist X=0.154 m and raised enough to
+                                      # clear the object pedestal.
+                                      translation 0.035 0 0.005
                                       children [
                                         Shape {
                                           appearance DEF GRIPPER_RUBBER PBRAppearance {
@@ -392,7 +395,7 @@ PROTO RobotArm [
                                             metalness 0
                                           }
                                           geometry Box {
-                                            size 0.030 0.010 0.060
+                                            size 0.030 0.010 0.040
                                           }
                                         }
                                       ]
@@ -401,10 +404,10 @@ PROTO RobotArm [
                                   name "left gripper jaw"
                                   contactMaterial "gripper_rubber"
                                   boundingObject Pose {
-                                    translation 0.035 0 0
+                                    translation 0.035 0 0.005
                                     children [
                                       Box {
-                                        size 0.030 0.010 0.060
+                                        size 0.030 0.010 0.040
                                       }
                                     ]
                                   }
@@ -442,12 +445,12 @@ PROTO RobotArm [
                                   translation 0.119 -0.040 0
                                   children [
                                     Pose {
-                                      translation 0.035 0 0
+                                      translation 0.035 0 0.005
                                       children [
                                         Shape {
                                           appearance USE GRIPPER_RUBBER
                                           geometry Box {
-                                            size 0.030 0.010 0.060
+                                            size 0.030 0.010 0.040
                                           }
                                         }
                                       ]
@@ -456,10 +459,10 @@ PROTO RobotArm [
                                   name "right gripper jaw"
                                   contactMaterial "gripper_rubber"
                                   boundingObject Pose {
-                                    translation 0.035 0 0
+                                    translation 0.035 0 0.005
                                     children [
                                       Box {
-                                        size 0.030 0.010 0.060
+                                        size 0.030 0.010 0.040
                                       }
                                     ]
                                   }
@@ -485,7 +488,7 @@ PROTO RobotArm [
                                   translation 0.112 0 0
                                   children [
                                     Box {
-                                      size 0.045 0.075 0.035
+                                      size 0.025 0.075 0.035
                                     }
                                   ]
                                 }

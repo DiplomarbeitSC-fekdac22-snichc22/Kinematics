@@ -280,7 +280,7 @@ class PickAndPlaceStateMachine(StateMachine):
 
         self._send_target_pose(
             "advance_towards_object",
-            self._require_target(),
+            self._target_at_grasp_depth(),
         )
 
     def on_enter_closing_gripper(self) -> None:
@@ -580,25 +580,34 @@ class PickAndPlaceStateMachine(StateMachine):
             self,
     ) -> TargetPosition:
         target = self._require_target()
+        offsets = self.kinematics_setting["target_offsets"]
         return self._target_with_radial_retraction(
             target,
             y_mm=(
-                    target.y_mm
-                    - float(
-                self.kinematics_setting[
-                    "target_offsets"
-                ]["pre_grasp_y_offset_mm"]
-            )
+                target.y_mm
+                - float(offsets["pre_grasp_y_offset_mm"])
+            ),
+            retraction_mm=(
+                    float(offsets["grasp_depth_offset_mm"])
+                    + float(offsets["approach_r_offset_mm"])
             ),
         )
 
     def _target_retracted_from_shelf(
             self,
     ) -> TargetPosition:
-        lifted = self._target_lifted_from_object()
+        target = self._require_target()
+        offsets = self.kinematics_setting["target_offsets"]
         return self._target_with_radial_retraction(
-            lifted,
-            y_mm=lifted.y_mm,
+            target,
+            y_mm=(
+                target.y_mm
+                - float(offsets["lift_after_grip_y_offset_mm"])
+            ),
+            retraction_mm=(
+                    float(offsets["grasp_depth_offset_mm"])
+                    + float(offsets["approach_r_offset_mm"])
+            ),
         )
 
     def _target_with_radial_retraction(
@@ -606,11 +615,8 @@ class PickAndPlaceStateMachine(StateMachine):
             target: TargetPosition,
             *,
             y_mm: float,
+            retraction_mm: float,
     ) -> TargetPosition:
-        offsets = self.kinematics_setting[
-            "target_offsets"
-        ]
-
         base_x, _, base_z = (
             self.kinematics_setting[
                 "input_coordinates"
@@ -628,18 +634,17 @@ class PickAndPlaceStateMachine(StateMachine):
             delta_z,
         )
 
-        approach_offset = float(
-            offsets["approach_r_offset_mm"]
-        )
+        if retraction_mm < 0.0:
+            raise ValueError("Radial retraction cannot be negative")
 
-        if radial_distance <= approach_offset:
+        if radial_distance <= retraction_mm:
             raise ValueError(
                 "Target is too close to apply the "
-                "configured radial approach offset"
+                "configured radial retraction"
             )
 
         scale = (
-                        radial_distance - approach_offset
+                        radial_distance - retraction_mm
                 ) / radial_distance
 
         return TargetPosition(
@@ -652,19 +657,27 @@ class PickAndPlaceStateMachine(StateMachine):
             self,
     ) -> TargetPosition:
         target = self._require_target()
-
-        lift_offset = float(
-            self.kinematics_setting[
-                "target_offsets"
-            ][
-                "lift_after_grip_y_offset_mm"
-            ]
+        offsets = self.kinematics_setting["target_offsets"]
+        return self._target_with_radial_retraction(
+            target,
+            y_mm=(
+                target.y_mm
+                - float(offsets["lift_after_grip_y_offset_mm"])
+            ),
+            retraction_mm=float(offsets["grasp_depth_offset_mm"]),
         )
 
-        return TargetPosition(
-            x_mm=target.x_mm,
-            y_mm=target.y_mm - lift_offset,
-            z_mm=target.z_mm,
+    def _target_at_grasp_depth(self) -> TargetPosition:
+        """Align the jaw contact centre with the object centre."""
+        target = self._require_target()
+        return self._target_with_radial_retraction(
+            target,
+            y_mm=target.y_mm,
+            retraction_mm=float(
+                self.kinematics_setting[
+                    "target_offsets"
+                ]["grasp_depth_offset_mm"]
+            ),
         )
 
     def _require_target(self) -> TargetPosition:
