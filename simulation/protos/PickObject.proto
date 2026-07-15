@@ -1,0 +1,45 @@
+#VRML_SIM R2025a utf8
+# license: GPL-3.0-only
+
+PROTO PickObject [
+  field SFVec3f translation 0.230 -0.060 0.320
+  field SFFloat radius 0.025
+  field SFFloat mass 0.065
+  field SFColor color 0.02 0.12 0.92
+  field SFString name "blue pick object"
+]
+{
+  Solid {
+    translation IS translation
+    children [
+      Shape {
+        appearance PBRAppearance {
+          baseColor IS color
+          roughness 0.72
+          metalness 0
+        }
+        geometry Sphere {
+          radius IS radius
+          subdivision 3
+        }
+      }
+    ]
+    name IS name
+    contactMaterial "pick_object"
+    recognitionColors [
+      0.02 0.12 0.92
+    ]
+    boundingObject Sphere {
+      radius IS radius
+      subdivision 2
+    }
+    physics Physics {
+      density -1
+      mass IS mass
+      damping Damping {
+        linear 0.05
+        angular 0.08
+      }
+    }
+  }
+}

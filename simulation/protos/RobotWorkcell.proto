@@ -1,0 +1,273 @@
+#VRML_SIM R2025a utf8
+# license: GPL-3.0-only
+# 400 x 360 x 500 mm workcell based on kinematics_settings.toml and the
+# supplied robot photograph. The open front is +X.
+
+PROTO RobotWorkcell [
+  field SFVec3f translation 0 0 0
+  field SFString name "PIA robot workcell"
+]
+{
+  Solid {
+    translation IS translation
+    children [
+      # Interior floor.
+      Pose {
+        translation 0 0 -0.005
+        children [
+          Shape {
+            appearance DEF ALUMINIUM PBRAppearance {
+              baseColor 0.70 0.73 0.76
+              roughness 0.38
+              metalness 0.75
+            }
+            geometry Box {
+              size 0.440 0.400 0.010
+            }
+          }
+        ]
+      }
+      # Back and side translucent panels.
+      Pose {
+        translation -0.205 0 0.250
+        children [
+          Shape {
+            appearance DEF PANEL PBRAppearance {
+              baseColor 0.80 0.84 0.88
+              transparency 0.46
+              roughness 0.25
+              metalness 0.05
+            }
+            geometry Box {
+              size 0.010 0.360 0.500
+            }
+          }
+        ]
+      }
+      Pose {
+        translation 0 0.185 0.250
+        children [
+          Shape {
+            appearance USE PANEL
+            geometry Box {
+              size 0.400 0.010 0.500
+            }
+          }
+        ]
+      }
+      Pose {
+        translation 0 -0.185 0.250
+        children [
+          Shape {
+            appearance USE PANEL
+            geometry Box {
+              size 0.400 0.010 0.500
+            }
+          }
+        ]
+      }
+
+      # Aluminium extrusion frame: vertical corner posts.
+      Pose {
+        translation -0.210 0.190 0.250
+        children [
+          Shape {
+            appearance USE ALUMINIUM
+            geometry Box { size 0.020 0.020 0.520 }
+          }
+        ]
+      }
+      Pose {
+        translation -0.210 -0.190 0.250
+        children [
+          Shape {
+            appearance USE ALUMINIUM
+            geometry Box { size 0.020 0.020 0.520 }
+          }
+        ]
+      }
+      Pose {
+        translation 0.210 0.190 0.250
+        children [
+          Shape {
+            appearance USE ALUMINIUM
+            geometry Box { size 0.020 0.020 0.520 }
+          }
+        ]
+      }
+      Pose {
+        translation 0.210 -0.190 0.250
+        children [
+          Shape {
+            appearance USE ALUMINIUM
+            geometry Box { size 0.020 0.020 0.520 }
+          }
+        ]
+      }
+
+      # Top and bottom front/back frame rails.
+      Pose {
+        translation 0 0.190 0.500
+        children [
+          Shape {
+            appearance USE ALUMINIUM
+            geometry Box { size 0.440 0.020 0.020 }
+          }
+        ]
+      }
+      Pose {
+        translation 0 -0.190 0.500
+        children [
+          Shape {
+            appearance USE ALUMINIUM
+            geometry Box { size 0.440 0.020 0.020 }
+          }
+        ]
+      }
+      Pose {
+        translation 0 0.190 0
+        children [
+          Shape {
+            appearance USE ALUMINIUM
+            geometry Box { size 0.440 0.020 0.020 }
+          }
+        ]
+      }
+      Pose {
+        translation 0 -0.190 0
+        children [
+          Shape {
+            appearance USE ALUMINIUM
+            geometry Box { size 0.440 0.020 0.020 }
+          }
+        ]
+      }
+
+      # Two shelf floors occupy only the conditional +X shelf extension from
+      # x=220 to x=320 mm. The empty workcell remains x=-220..+220 mm. The
+      # upper object pedestal places the demo ball at the existing regression
+      # target (230, 180, 60) mm.
+      Pose {
+        translation 0.270 0 0.2525
+        children [
+          Shape {
+            appearance DEF SHELF PBRAppearance {
+              baseColor 0.42 0.45 0.48
+              roughness 0.55
+              metalness 0.65
+            }
+            geometry Box {
+              size 0.100 0.340 0.005
+            }
+          }
+        ]
+      }
+      Pose {
+        translation 0.270 0 0.1275
+        children [
+          Shape {
+            appearance USE SHELF
+            geometry Box {
+              size 0.100 0.340 0.005
+            }
+          }
+        ]
+      }
+      Pose {
+        translation 0.245 -0.060 0.275
+        children [
+          Shape {
+            appearance USE SHELF
+            geometry Box {
+              size 0.050 0.065 0.040
+            }
+          }
+        ]
+      }
+
+      # Deposit tray centred on the configured drop-off X/Z coordinates.
+      Pose {
+        translation 0 -0.130 0.095
+        children [
+          Shape {
+            appearance DEF TRAY PBRAppearance {
+              baseColor 0.28 0.30 0.33
+              roughness 0.62
+              metalness 0.30
+            }
+            geometry Box {
+              size 0.100 0.085 0.010
+            }
+          }
+        ]
+      }
+
+      # Visual approximation of the original top control panel.
+      Pose {
+        translation -0.185 0 0.455
+        children [
+          Shape {
+            appearance USE ALUMINIUM
+            geometry Box {
+              size 0.035 0.250 0.075
+            }
+          }
+        ]
+      }
+      Pose {
+        translation -0.164 0 0.455
+        rotation 0 1 0 1.570796
+        children [
+          Shape {
+            appearance DEF CONTROL_BLACK PBRAppearance {
+              baseColor 0.025 0.028 0.032
+              roughness 0.48
+              metalness 0.05
+            }
+            geometry Box {
+              size 0.003 0.135 0.050
+            }
+          }
+        ]
+      }
+    ]
+    name IS name
+    contactMaterial "workcell"
+    boundingObject Group {
+      children [
+        Pose {
+          translation 0 0 -0.005
+          children [ Box { size 0.440 0.400 0.010 } ]
+        }
+        Pose {
+          translation -0.205 0 0.250
+          children [ Box { size 0.010 0.360 0.500 } ]
+        }
+        Pose {
+          translation 0 0.185 0.250
+          children [ Box { size 0.400 0.010 0.500 } ]
+        }
+        Pose {
+          translation 0 -0.185 0.250
+          children [ Box { size 0.400 0.010 0.500 } ]
+        }
+        Pose {
+          translation 0.270 0 0.2525
+          children [ Box { size 0.100 0.340 0.005 } ]
+        }
+        Pose {
+          translation 0.270 0 0.1275
+          children [ Box { size 0.100 0.340 0.005 } ]
+        }
+        Pose {
+          translation 0.245 -0.060 0.275
+          children [ Box { size 0.050 0.065 0.040 } ]
+        }
+        Pose {
+          translation 0 -0.130 0.095
+          children [ Box { size 0.100 0.085 0.010 } ]
+        }
+      ]
+    }
+  }
+}

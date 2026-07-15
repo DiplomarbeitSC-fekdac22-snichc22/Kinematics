@@ -1,0 +1,70 @@
+#VRML_SIM R2025a utf8
+
+EXTERNPROTO "../protos/RobotWorkcell.proto"
+EXTERNPROTO "../protos/RobotArm.proto"
+EXTERNPROTO "../protos/PickObject.proto"
+
+WorldInfo {
+  info [
+    "PIA robot arm Webots integration for the Kinematics project"
+    "Robot frame: X forward, Y down from top, Z right"
+    "Webots frame: X forward, Y left, Z up"
+  ]
+  title "PIA Robot Arm Pick and Place"
+  basicTimeStep 16
+  gravity 9.81
+  contactProperties [
+    ContactProperties {
+      material1 "gripper_rubber"
+      material2 "pick_object"
+      coulombFriction [ 1.6 ]
+      bounce 0
+      softERP 0.35
+      softCFM 0.0001
+      maxContactJoints 12
+    }
+    ContactProperties {
+      material1 "workcell"
+      material2 "pick_object"
+      coulombFriction [ 0.75 ]
+      rollingFriction 0.015 0.015 0.010
+      bounce 0.05
+      maxContactJoints 8
+    }
+  ]
+}
+Viewpoint {
+  orientation 0.782827 0.357278 0.509445 1.461052
+  position 1.0 -0.85 0.72
+  near 0.02
+}
+Background {
+  skyColor [
+    0.88 0.91 0.95
+  ]
+}
+DirectionalLight {
+  ambientIntensity 0.55
+  direction -0.4 0.3 -1
+  intensity 1.3
+  castShadows TRUE
+}
+PointLight {
+  location 0.15 0 0.62
+  intensity 0.8
+  radius 2
+  castShadows TRUE
+}
+
+RobotWorkcell {
+}
+RobotArm {
+  controllerArgs [
+    "--target-mm"
+    "230"
+    "180"
+    "60"
+  ]
+}
+PickObject {
+}

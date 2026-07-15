@@ -1,0 +1,534 @@
+#VRML_SIM R2025a utf8
+# license: GPL-3.0-only
+# Simplified articulated model of the existing PIA robot arm.
+# Geometry follows configs/robot_geometry.toml; primitive collision geometry is
+# intentionally used until per-link CAD meshes and measured inertias are available.
+
+PROTO RobotArm [
+  field SFVec3f    translation   0 0 0.06825
+  field SFRotation rotation      0 0 1 0
+  field SFString   name          "PIA robot arm"
+  field SFString   controller    "kinematics_webots"
+  field MFString   controllerArgs []
+]
+{
+  Robot {
+    translation IS translation
+    rotation IS rotation
+    children [
+      # Fixed base and mounting plate. The Robot origin is the shoulder axis,
+      # 68.25 mm above the workcell floor.
+      Pose {
+        translation 0 0 -0.034125
+        children [
+          Shape {
+            appearance DEF DARK_METAL PBRAppearance {
+              baseColor 0.12 0.14 0.16
+              roughness 0.45
+              metalness 0.65
+            }
+            geometry Box {
+              size 0.110 0.100 0.06825
+            }
+          }
+        ]
+      }
+      Pose {
+        translation 0 0 -0.066
+        children [
+          Shape {
+            appearance DEF LIGHT_METAL PBRAppearance {
+              baseColor 0.72 0.75 0.78
+              roughness 0.35
+              metalness 0.75
+            }
+            geometry Box {
+              size 0.150 0.130 0.006
+            }
+          }
+        ]
+      }
+
+      # Both fixed Camera Module 3 Wide approximations are owned by the Robot
+      # controller but remain fixed because they are outside the joint chain.
+      Pose {
+        translation -0.190 0.110 0.35175
+        rotation 0 1 0 -1.279
+        children [
+          Shape {
+            appearance DEF CAMERA_BLACK PBRAppearance {
+              baseColor 0.025 0.028 0.032
+              roughness 0.35
+              metalness 0.1
+            }
+            geometry Box {
+              size 0.026 0.030 0.009
+            }
+          }
+        ]
+      }
+      Camera {
+        translation -0.190 0.110 0.35175
+        rotation 0 1 0 -1.279
+        name "camera_left"
+        fieldOfView 1.780236
+        width 640
+        height 360
+        near 0.01
+      }
+      Pose {
+        translation -0.190 -0.110 0.35175
+        rotation 0 1 0 -1.279
+        children [
+          Shape {
+            appearance USE CAMERA_BLACK
+            geometry Box {
+              size 0.026 0.030 0.009
+            }
+          }
+        ]
+      }
+      Camera {
+        translation -0.190 -0.110 0.35175
+        rotation 0 1 0 -1.279
+        name "camera_right"
+        fieldOfView 1.780236
+        width 640
+        height 360
+        near 0.01
+      }
+
+      # J1: positive project angle turns toward robot-right. Webots uses the
+      # opposite sign around +Z; the adapter applies that sign conversion.
+      HingeJoint {
+        jointParameters HingeJointParameters {
+          position 0.000000
+          axis 0 0 1
+          anchor 0 0 0
+          minStop -1.570796
+          maxStop 1.570796
+          dampingConstant 0.08
+          staticFriction 0.02
+        }
+        device [
+          RotationalMotor {
+            name "J1_base"
+            maxVelocity 0.785398
+            minPosition -1.570796
+            maxPosition 1.570796
+            maxTorque 1.20
+          }
+          PositionSensor {
+            name "J1_base_sensor"
+          }
+        ]
+        endPoint Solid {
+          children [
+            Pose {
+              translation 0 0 0
+              rotation 1 0 0 1.570796
+              children [
+                Shape {
+                  appearance DEF SERVO_BLUE PBRAppearance {
+                    baseColor 0.02 0.16 0.70
+                    roughness 0.30
+                    metalness 0.20
+                  }
+                  geometry Cylinder {
+                    radius 0.027
+                    height 0.055
+                  }
+                }
+              ]
+            }
+            Pose {
+              translation 0 0 0.018
+              children [
+                Shape {
+                  appearance USE DARK_METAL
+                  geometry Box {
+                    size 0.055 0.050 0.040
+                  }
+                }
+              ]
+            }
+
+            # J2 shoulder. Axis -Y makes a positive project shoulder angle lift
+            # a link that points along +X at zero degrees.
+            HingeJoint {
+              jointParameters HingeJointParameters {
+                position 1.776649
+                axis 0 -1 0
+                anchor 0 0 0
+                minStop 0
+                maxStop 2.792527
+                dampingConstant 0.10
+                staticFriction 0.03
+              }
+              device [
+                RotationalMotor {
+                  name "J2_shoulder"
+                  maxVelocity 0.785398
+                  minPosition 0
+                  maxPosition 2.792527
+                  maxTorque 2.11
+                }
+                PositionSensor {
+                  name "J2_shoulder_sensor"
+                }
+              ]
+              endPoint Solid {
+                children [
+                  Pose {
+                    translation 0.100 0 0
+                    children [
+                      Shape {
+                        appearance DEF ARM_WHITE PBRAppearance {
+                          baseColor 0.92 0.92 0.88
+                          roughness 0.42
+                          metalness 0.05
+                        }
+                        geometry Box {
+                          size 0.200 0.036 0.024
+                        }
+                      }
+                    ]
+                  }
+                  Pose {
+                    translation 0.200 0 0
+                    rotation 1 0 0 1.570796
+                    children [
+                      Shape {
+                        appearance USE SERVO_BLUE
+                        geometry Cylinder {
+                          radius 0.024
+                          height 0.050
+                        }
+                      }
+                    ]
+                  }
+
+                  # J3's Webots position is 180 degrees minus the configured
+                  # interior elbow angle. The +Y axis therefore produces the
+                  # elbow-back relative rotation used by IK and FK.
+                  HingeJoint {
+                    jointParameters HingeJointParameters {
+                      position 0.991190
+                      axis 0 1 0
+                      anchor 0.200 0 0
+                      minStop 0
+                      maxStop 3.141593
+                      dampingConstant 0.08
+                      staticFriction 0.025
+                    }
+                    device [
+                      RotationalMotor {
+                        name "J3_elbow"
+                        maxVelocity 0.785398
+                        minPosition 0
+                        maxPosition 3.141593
+                        maxTorque 2.11
+                      }
+                      PositionSensor {
+                        name "J3_elbow_sensor"
+                      }
+                    ]
+                    endPoint Solid {
+                      translation 0.200 0 0
+                      children [
+                        Pose {
+                          translation 0.082 0 0
+                          children [
+                            Shape {
+                              appearance USE ARM_WHITE
+                              geometry Box {
+                                size 0.164 0.034 0.022
+                              }
+                            }
+                          ]
+                        }
+                        Pose {
+                          translation 0.164 0 0
+                          rotation 1 0 0 1.570796
+                          children [
+                            Shape {
+                              appearance USE SERVO_BLUE
+                              geometry Cylinder {
+                                radius 0.022
+                                height 0.047
+                              }
+                            }
+                          ]
+                        }
+
+                        HingeJoint {
+                          jointParameters HingeJointParameters {
+                            position -0.785459
+                            axis 0 -1 0
+                            anchor 0.164 0 0
+                            minStop -2.094395
+                            maxStop 2.094395
+                            dampingConstant 0.05
+                            staticFriction 0.015
+                          }
+                          device [
+                            RotationalMotor {
+                              name "J4_wrist"
+                              maxVelocity 0.785398
+                              minPosition -2.094395
+                              maxPosition 2.094395
+                              maxTorque 2.11
+                            }
+                            PositionSensor {
+                              name "J4_wrist_sensor"
+                            }
+                          ]
+                          endPoint Solid {
+                            translation 0.164 0 0
+                            children [
+                              Pose {
+                                translation 0.062461 0 0
+                                children [
+                                  Shape {
+                                    appearance USE ARM_WHITE
+                                    geometry Box {
+                                      size 0.124922 0.045 0.026
+                                    }
+                                  }
+                                ]
+                              }
+                              Pose {
+                                translation 0.112 0 0
+                                children [
+                                  Shape {
+                                    appearance USE DARK_METAL
+                                    geometry Box {
+                                      size 0.045 0.075 0.035
+                                    }
+                                  }
+                                ]
+                              }
+                              Pose {
+                                translation 0.119 0 -0.021
+                                rotation 0 1 0 -1.570796
+                                children [
+                                  Shape {
+                                    appearance DEF SENSOR_GREEN PBRAppearance {
+                                      baseColor 0.05 0.42 0.18
+                                      roughness 0.55
+                                      metalness 0
+                                    }
+                                    geometry Box {
+                                      size 0.022 0.018 0.010
+                                    }
+                                  }
+                                ]
+                              }
+                              RangeFinder {
+                                translation 0.124922 0 -0.021
+                                rotation 0 1 0 -1.570796
+                                name "tof_vl53l4cd"
+                                fieldOfView 0.223060
+                                width 1
+                                height 1
+                                near 0.001
+                                minRange 0.001
+                                maxRange 1.2
+                                noise 0.002
+                              }
+
+                              SliderJoint {
+                                jointParameters JointParameters {
+                                  position 0.040
+                                  axis 0 1 0
+                                  minStop 0.010
+                                  maxStop 0.040
+                                  dampingConstant 0.8
+                                  staticFriction 0.1
+                                }
+                                device [
+                                  LinearMotor {
+                                    name "J5_gripper_left"
+                                    maxVelocity 0.020
+                                    minPosition 0.010
+                                    maxPosition 0.040
+                                    maxForce 15
+                                  }
+                                  PositionSensor {
+                                    name "J5_gripper_left_sensor"
+                                  }
+                                ]
+                                endPoint Solid {
+                                  translation 0.119 0.040 0
+                                  children [
+                                    Shape {
+                                      appearance DEF GRIPPER_RUBBER PBRAppearance {
+                                        baseColor 0.08 0.09 0.10
+                                        roughness 0.95
+                                        metalness 0
+                                      }
+                                      geometry Box {
+                                        size 0.055 0.010 0.060
+                                      }
+                                    }
+                                  ]
+                                  name "left gripper jaw"
+                                  contactMaterial "gripper_rubber"
+                                  boundingObject Box {
+                                    size 0.055 0.010 0.060
+                                  }
+                                  physics Physics {
+                                    density -1
+                                    mass 0.025
+                                  }
+                                }
+                              }
+                              SliderJoint {
+                                jointParameters JointParameters {
+                                  position 0.040
+                                  axis 0 -1 0
+                                  minStop 0.010
+                                  maxStop 0.040
+                                  dampingConstant 0.8
+                                  staticFriction 0.1
+                                }
+                                device [
+                                  LinearMotor {
+                                    name "J5_gripper_right"
+                                    maxVelocity 0.020
+                                    minPosition 0.010
+                                    maxPosition 0.040
+                                    maxForce 15
+                                  }
+                                  PositionSensor {
+                                    name "J5_gripper_right_sensor"
+                                  }
+                                ]
+                                endPoint Solid {
+                                  translation 0.119 -0.040 0
+                                  children [
+                                    Shape {
+                                      appearance USE GRIPPER_RUBBER
+                                      geometry Box {
+                                        size 0.055 0.010 0.060
+                                      }
+                                    }
+                                  ]
+                                  name "right gripper jaw"
+                                  contactMaterial "gripper_rubber"
+                                  boundingObject Box {
+                                    size 0.055 0.010 0.060
+                                  }
+                                  physics Physics {
+                                    density -1
+                                    mass 0.025
+                                  }
+                                }
+                              }
+                            ]
+                            name "wrist and gripper"
+                            boundingObject Group {
+                              children [
+                                Pose {
+                                  translation 0.062461 0 0
+                                  children [
+                                    Box {
+                                      size 0.124922 0.045 0.026
+                                    }
+                                  ]
+                                }
+                                Pose {
+                                  translation 0.112 0 0
+                                  children [
+                                    Box {
+                                      size 0.045 0.075 0.035
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                            physics Physics {
+                              density -1
+                              mass 0.18
+                            }
+                          }
+                        }
+                      ]
+                      name "forearm link"
+                      boundingObject Pose {
+                        translation 0.082 0 0
+                        children [
+                          Box {
+                            size 0.164 0.034 0.022
+                          }
+                        ]
+                      }
+                      physics Physics {
+                        density -1
+                        mass 0.24
+                      }
+                    }
+                  }
+                ]
+                name "upper arm link"
+                boundingObject Pose {
+                  translation 0.100 0 0
+                  children [
+                    Box {
+                      size 0.200 0.036 0.024
+                    }
+                  ]
+                }
+                physics Physics {
+                  density -1
+                  mass 0.28
+                }
+              }
+            }
+          ]
+          name "rotating base"
+          boundingObject Group {
+            children [
+              Pose {
+                rotation 1 0 0 1.570796
+                children [
+                  Cylinder {
+                    radius 0.027
+                    height 0.055
+                  }
+                ]
+              }
+              Pose {
+                translation 0 0 0.018
+                children [
+                  Box {
+                    size 0.055 0.050 0.040
+                  }
+                ]
+              }
+            ]
+          }
+          physics Physics {
+            density -1
+            mass 0.18
+          }
+        }
+      }
+    ]
+    name IS name
+    model "PIA V5 4-DOF arm plus gripper"
+    controller IS controller
+    controllerArgs IS controllerArgs
+    supervisor TRUE
+    synchronization TRUE
+    selfCollision FALSE
+    boundingObject Pose {
+      translation 0 0 -0.034125
+      children [
+        Box {
+          size 0.110 0.100 0.06825
+        }
+      ]
+    }
+  }
+}
