@@ -26,6 +26,7 @@ class MotionCommand:
     name: str
     pulses_us: dict[str, int]
     gripper_center_mm: dict[str, float] | None = None
+    joint_angles_deg: dict[str, float] | None = None
 
 
 class MotionCommandSink(Protocol):
@@ -78,6 +79,16 @@ class JsonRecordingMotionSink:
             {
                 "command": command.name,
                 "pulses_us": dict(command.pulses_us),
+                "joint_angles_deg": (
+                    dict(command.joint_angles_deg)
+                    if command.joint_angles_deg is not None
+                    else None
+                ),
+                "gripper_center_mm": (
+                    dict(command.gripper_center_mm)
+                    if command.gripper_center_mm is not None
+                    else None
+                ),
             }
         )
 
@@ -108,6 +119,7 @@ class PickAndPlaceStateMachine(StateMachine):
     advancing_towards_object = State("advancing_towards_object")
     closing_gripper = State("closing_gripper")
     lifting_object = State("lifting_object")
+    retracting_from_shelf = State("retracting_from_shelf")
     moving_to_deposit = State("moving_to_deposit")
     opening_gripper = State("opening_gripper")
     returning_home = State("returning_home")
@@ -126,7 +138,8 @@ class PickAndPlaceStateMachine(StateMachine):
         | moving_in_front_of_object.to(advancing_towards_object)
         | advancing_towards_object.to(closing_gripper)
         | closing_gripper.to(lifting_object)
-        | lifting_object.to(moving_to_deposit)
+        | lifting_object.to(retracting_from_shelf)
+        | retracting_from_shelf.to(moving_to_deposit)
         | moving_to_deposit.to(opening_gripper)
         | opening_gripper.to(returning_home)
         | returning_home.to(done)
@@ -139,6 +152,7 @@ class PickAndPlaceStateMachine(StateMachine):
         | advancing_towards_object.to(failed)
         | closing_gripper.to(failed)
         | lifting_object.to(failed)
+        | retracting_from_shelf.to(failed)
         | moving_to_deposit.to(failed)
         | opening_gripper.to(failed)
         | returning_home.to(failed)
@@ -291,13 +305,35 @@ class PickAndPlaceStateMachine(StateMachine):
             self._target_lifted_from_object(),
         )
 
+    def on_enter_retracting_from_shelf(self) -> None:
+        self._announce_state(
+            "retracting_from_shelf",
+            "Retracting from shelf before changing height",
+        )
+
+        self._send_target_pose(
+            "retract_from_shelf",
+            self._target_retracted_from_shelf(),
+        )
+
     def on_enter_moving_to_deposit(self) -> None:
         self._announce_state(
             "moving_to_deposit",
             "Moving to deposit position",
         )
 
-        self._send_named_pose("deposit")
+        drop_off = self.poses_config[
+            "cartesian_targets"
+        ]["drop_off"]
+
+        self._send_target_pose(
+            "move_deposit",
+            TargetPosition(
+                x_mm=float(drop_off["x_mm"]),
+                y_mm=float(drop_off["y_mm"]),
+                z_mm=float(drop_off["z_mm"]),
+            ),
+        )
 
     def on_enter_opening_gripper(self) -> None:
         self._announce_state(
@@ -414,6 +450,7 @@ class PickAndPlaceStateMachine(StateMachine):
             MotionCommand(
                 name=command_name,
                 pulses_us=pulses,
+                joint_angles_deg=joint_angles,
                 gripper_center_mm=gripper_center,
             )
         )
@@ -453,6 +490,7 @@ class PickAndPlaceStateMachine(StateMachine):
             MotionCommand(
                 name=f"move_{name}",
                 pulses_us=pulses,
+                joint_angles_deg=joint_angles,
                 gripper_center_mm=gripper_center,
             )
         )
@@ -534,6 +572,33 @@ class PickAndPlaceStateMachine(StateMachine):
         self,
     ) -> TargetPosition:
         target = self._require_target()
+        return self._target_with_radial_retraction(
+            target,
+            y_mm=(
+                target.y_mm
+                - float(
+                    self.kinematics_setting[
+                        "target_offsets"
+                    ]["pre_grasp_y_offset_mm"]
+                )
+            ),
+        )
+
+    def _target_retracted_from_shelf(
+        self,
+    ) -> TargetPosition:
+        lifted = self._target_lifted_from_object()
+        return self._target_with_radial_retraction(
+            lifted,
+            y_mm=lifted.y_mm,
+        )
+
+    def _target_with_radial_retraction(
+        self,
+        target: TargetPosition,
+        *,
+        y_mm: float,
+    ) -> TargetPosition:
         offsets = self.kinematics_setting[
             "target_offsets"
         ]
@@ -571,14 +636,7 @@ class PickAndPlaceStateMachine(StateMachine):
 
         return TargetPosition(
             x_mm=base_x + delta_x * scale,
-            y_mm=(
-                target.y_mm
-                - float(
-                    offsets[
-                        "pre_grasp_y_offset_mm"
-                    ]
-                )
-            ),
+            y_mm=y_mm,
             z_mm=base_z + delta_z * scale,
         )
 

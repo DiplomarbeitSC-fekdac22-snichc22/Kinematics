@@ -2,7 +2,7 @@
 # This is hardware-adjacent, but included because kinematics output must eventually become servo pulse/count commands.
 
 # Version of this configuration file format.
-schema_version = "1.1"
+schema_version = "1.2"
 
 # Default PCA9685 I2C address.
 i2c_address = 0x40
@@ -42,11 +42,11 @@ J2_shoulder = 2
 # PCA9685 channel connected to the elbow servo.
 J3_elbow = 4
 # PCA9685 channel connected to the wrist servo.
-J4_wrist = 6
+J4_wrist = 8
 # PCA9685 channel connected to the gripper servo.
-J5_gripper = 8
+J5_gripper = 6
 
 [notes]
-channel_map_status = "matched_to_existing_robot_controller_configuration"
+channel_map_status = "matched_to_robot_schematic_servomotor_4_gripper_and_servomotor_5_wrist"
 
 text = "Verify servo direction and mechanical pulse limits before unattended operation."

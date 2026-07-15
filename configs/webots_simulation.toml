@@ -1,0 +1,118 @@
+# Webots adapter configuration.
+# Lengths in this file use metres where the field name ends in `_m` and
+# millimetres where it ends in `_mm`. Angles use degrees or radians as named.
+
+schema_version = "1.0"
+webots_release = "R2025a"
+
+[timing]
+basic_time_step_ms = 16
+command_timeout_s = 15.0
+settle_time_s = 0.20
+
+[coordinate_mapping]
+# Runtime robot coordinates: X forward, Z right, Y down from the box top.
+# Webots coordinates: X forward, Y left, Z up.
+robot_x_to_webots_axis = "+x"
+robot_z_to_webots_axis = "-y"
+robot_y_to_webots_axis = "top_reference_minus_z"
+top_reference_height_mm = 500.0
+metres_per_millimetre = 0.001
+
+[joints.J1_base]
+motor_device = "J1_base"
+sensor_device = "J1_base_sensor"
+# Positive robot-base rotation points right, while positive Webots Z rotation points left.
+kinematic_to_webots_sign = -1.0
+kinematic_to_webots_offset_deg = 0.0
+position_tolerance_rad = 0.008727
+max_velocity_rad_s = 0.785398
+
+[joints.J2_shoulder]
+motor_device = "J2_shoulder"
+sensor_device = "J2_shoulder_sensor"
+kinematic_to_webots_sign = 1.0
+kinematic_to_webots_offset_deg = 0.0
+position_tolerance_rad = 0.008727
+max_velocity_rad_s = 0.785398
+
+[joints.J3_elbow]
+motor_device = "J3_elbow"
+sensor_device = "J3_elbow_sensor"
+# J3 is stored as an interior angle. The Webots hinge position is 180 deg - J3.
+kinematic_to_webots_sign = -1.0
+kinematic_to_webots_offset_deg = 180.0
+position_tolerance_rad = 0.008727
+max_velocity_rad_s = 0.785398
+
+[joints.J4_wrist]
+motor_device = "J4_wrist"
+sensor_device = "J4_wrist_sensor"
+kinematic_to_webots_sign = 1.0
+kinematic_to_webots_offset_deg = 0.0
+position_tolerance_rad = 0.008727
+max_velocity_rad_s = 0.785398
+
+[gripper]
+source_joint = "J5_gripper"
+left_motor_device = "J5_gripper_left"
+right_motor_device = "J5_gripper_right"
+left_sensor_device = "J5_gripper_left_sensor"
+right_sensor_device = "J5_gripper_right_sensor"
+# Slider position is the lateral distance from the gripper centre to a jaw centre.
+open_slider_position_m = 0.040
+closed_slider_position_m = 0.010
+jaw_half_width_m = 0.005
+position_tolerance_m = 0.0005
+max_velocity_m_s = 0.020
+# A closing jaw may stop against the object before reaching its empty-gripper
+# target. Treat it as a successful grasp only after it moved and then remained
+# stationary against contact for the normal settle interval.
+contact_minimum_motion_m = 0.001
+contact_stability_delta_m = 0.00005
+
+[devices]
+left_camera = "camera_left"
+right_camera = "camera_right"
+tof_range_finder = "tof_vl53l4cd"
+sensor_period_ms = 32
+
+[cameras]
+count = 2
+# Low-cost simulation stream that preserves an approximately 16:9 wide view.
+width_px = 640
+height_px = 360
+# Camera Module 3 Wide nominal horizontal field of view.
+horizontal_field_of_view_deg = 102.0
+# Both camera optical centres are fixed at the same height relative to the
+# shoulder origin. Y is Webots-left, so the signs distinguish the two views.
+left_translation_m = [-0.190, 0.110, 0.35175]
+right_translation_m = [-0.190, -0.110, 0.35175]
+pitch_rotation_rad = -1.279
+
+[tof]
+# The VL53L4CD is a single-zone sensor rather than an 8 x 8 imager.
+grid_width = 1
+grid_height = 1
+diagonal_field_of_view_deg = 18.0
+# Webots RangeFinder uses an axis FoV. For a square 1 x 1 pinhole image, an
+# 18 degree diagonal becomes approximately 12.7804 degrees per axis.
+webots_axis_field_of_view_deg = 12.7803921518
+minimum_range_m = 0.001
+maximum_range_m = 1.2
+noise_standard_deviation_m = 0.002
+
+[model]
+shoulder_height_from_floor_mm = 68.25
+link_1_mm = 200.0
+link_2_mm = 164.0
+tool_length_mm = 124.922
+maximum_gripper_opening_mm = 70.0
+
+[source_status]
+geometry = "CAD-derived from V5Baugruppe_20260701.step through robot_geometry.toml"
+servo_limits = "provisional; physical calibration still required"
+camera_poses = "provisional fixed stereo placement based on project plan"
+tof_model = "VL53L4CD single-zone, 18 degree diagonal, 1.2 m Webots RangeFinder approximation"
+purchase_list = "incremental purchases only; retained PCA9685 and servos remain part of the stack"
+control_architecture = "two fixed cameras replace switch-based localization; ToF remains on the gripper"

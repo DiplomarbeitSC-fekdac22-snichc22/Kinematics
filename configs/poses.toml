@@ -4,7 +4,7 @@
 # Update after measuring physical home and safe limits.
 
 # Version of this configuration file format.
-schema_version = "1.0"
+schema_version = "1.2"
 # Unit used for all joint-angle values in this file.
 units_angle = "deg"
 
@@ -44,11 +44,11 @@ description = "Provisional ready pose with gripper lifted away from workspace"
 # Base rotation angle for the ready pose.
 J1_base = 0.0
 # Shoulder angle for the ready pose.
-J2_shoulder = 75.0
+J2_shoulder = 101.79450227906935
 # Positive elbow bend angle for the ready pose.
-J3_elbow = 75.0
+J3_elbow = 123.2089991563985
 # Wrist angle for the ready pose.
-J4_wrist = 0.0
+J4_wrist = -45.00350143546785
 # Gripper command for the ready pose.
 J5_gripper = 0.0
 # Marks that this pose must be tested before real use.

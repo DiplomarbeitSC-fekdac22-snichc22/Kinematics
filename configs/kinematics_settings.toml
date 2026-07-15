@@ -3,7 +3,7 @@
 # Coordinate convention: X is depth/forward, Z is lateral/right, and Y is distance downward from the top reference.
 
 # Version of this configuration file format.
-schema_version = "1.0"
+schema_version = "1.2"
 # Unit used for all length/distance values in this file.
 units_length = "mm"
 # Unit used for all angular values in this file.
@@ -80,6 +80,9 @@ elbow_positive = "toward_wrist"
 [fk]
 # Compare forward-kinematics output against observed/measured gripper positions when available.
 compare_against_observed_gripper = true
+# The stored J3 value is an interior elbow angle. For the selected elbow-back
+# branch, the signed relative angle is -(180 deg - J3).
+elbow_relative_sign = -1.0
 # Position error that should produce a warning but not necessarily fail validation.
 position_error_warning_mm = 15.0
 # Position error large enough to be considered a failed FK/measurement comparison.
@@ -124,30 +127,32 @@ width = 360.0
 
 [elbow_clearance_mm]
 # Measured arm/elbow operating clearance beyond the nominal box depth.
-# The front allowance varies by location; collision safety still needs physical verification.
+# The normal free box extends 20 mm beyond both nominal +/-200 mm faces.
 front_extra = 20.0
 rear_extra = 20.0
-# The runtime bounds below use the outer measured clearances so valid approach targets are
-# not rejected solely because they lie just beyond the nominal enclosure face.
+# Shelf depth is handled separately and must not enlarge the free-box bounds.
 
 [shelving_mm]
-# Distance downward from the box top at which the first shelf/compartment starts.
+# Distance downward from the box top at which the first open compartment starts.
 first_shelf_from_top = 125.0
+# Number of vertically stacked open shelf compartments.
+compartment_count = 2
 # Clear height of each shelf compartment.
 compartment_height = 120.0
 # Thickness of each shelf floor.
 floor_thickness = 5.0
-# Shelf reference position along X, measured from the box-depth centerline.
-x_position_mm = 100.0
+# Extra positive-X depth available only inside the open shelf compartments.
+depth = 100.0
 # Shelves lie in the positive-X direction from the box-depth centerline.
 x_direction = "positive"
 
 [workspace_bounds_robot_base_mm]
-# Measured operating envelope: the centered nominal box plus the measured clearances above.
+# Free-box operating envelope. Shelf compartments are conditional extensions
+# beyond x_max and are validated separately using shelving_mm.
 # X is depth from the box-depth centerline, Z is lateral from the width centerline, and Y is distance from the top.
 # Rear edge: half the 400 mm enclosure depth plus 20 mm rear clearance.
 x_min = -220.0
-# Front edge: half the 400 mm enclosure depth plus the 20 mm front clearance.
+# Front edge: half the 400 mm enclosure depth plus 20 mm front clearance.
 x_max = 220.0
 # Minimum allowed Y distance downward from the top reference.
 y_min = 0.0
