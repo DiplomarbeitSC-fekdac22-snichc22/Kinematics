@@ -36,8 +36,8 @@ def test_uses_existing_robot_controller_channel_mapping() -> None:
         "J1_base": 0,
         "J2_shoulder": 2,
         "J3_elbow": 4,
-        "J4_wrist": 6,
-        "J5_gripper": 8,
+        "J4_wrist": 8,
+        "J5_gripper": 6,
     }
 
     assert pca.frequency == 50
@@ -57,7 +57,7 @@ def test_send_converts_microseconds_and_writes_channels() -> None:
     # We compute a 12-bit PCA9685 count (0..4095) and then
     # scale it to CircuitPython’s 16-bit duty-cycle space.
     assert pca.channels[0].duty_cycle == 307 << 4
-    assert pca.channels[8].duty_cycle == 246 << 4
+    assert pca.channels[6].duty_cycle == 246 << 4
 
     # Unmentioned channels remain unchanged
     assert pca.channels[2].duty_cycle == 0

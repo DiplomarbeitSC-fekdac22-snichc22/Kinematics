@@ -20,7 +20,12 @@ from math import atan2, cos, degrees, hypot, radians, sin, sqrt
 from pathlib import Path
 from typing import Any
 
-from kinematics.angle_to_pwm import angle_to_pwm, clamp_angle
+from kinematics.angle_to_pwm import (
+    angle_to_pwm,
+    angle_to_pwm_unclamped,
+    clamp_angle,
+)
+from kinematics.workspace_checker import workspace_violation_reasons
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -130,16 +135,14 @@ def calculate_angles(x_mm: float, y_mm: float, z_mm: float, config_dir: Path | s
     if validation["check_reachability"] and not (min_reach <= d <= max_reach):
         reasons.append(f"wrist distance {d:.1f} mm outside {min_reach:.1f}-{max_reach:.1f} mm")
 
-    if validation["check_workspace_bounds"]:
-        bounds = settings["workspace_bounds_robot_base_mm"]
-        checks = (("x", x_mm), ("y", y_mm), ("z", z_mm))
-        for axis, value in checks:
-            if not (bounds[f"{axis}_min"] <= value <= bounds[f"{axis}_max"]):
-                if axis == "x" and (bounds[f"{axis}_min"] <= value <= bounds[f"{axis}_max"] + settings["shelving_mm"][
-                    "x_position_mm"]):
-                    continue
-                else:
-                    reasons.append(f"{axis}={value:.1f} mm outside workspace bounds")
+    reasons.extend(
+        workspace_violation_reasons(
+            x_mm,
+            y_mm,
+            z_mm,
+            settings,
+        )
+    )
 
     if validation.get("check_side_view_orientation", False):
         if preference == "elbow_back" and elbow_r > 0.0:
@@ -154,6 +157,21 @@ def calculate_angles(x_mm: float, y_mm: float, z_mm: float, config_dir: Path | s
                 reasons.append(
                     f"{joint_name} angle {angle:.1f} deg outside "
                     f"{joint['theta_min_deg']:.1f} - {joint['theta_max_deg']:.1f} deg"
+                )
+
+    if validation["check_pulse_limits"]:
+        for joint_name, angle in angles.items():
+            joint = servo["joints"][joint_name]
+            raw_pulse = angle_to_pwm_unclamped(angle, joint)
+            if not (
+                joint["pulse_min_us"]
+                <= raw_pulse
+                <= joint["pulse_max_us"]
+            ):
+                reasons.append(
+                    f"{joint_name} requires {raw_pulse:.0f} us outside "
+                    f"{joint['pulse_min_us']:.0f} - "
+                    f"{joint['pulse_max_us']:.0f} us"
                 )
 
     return {

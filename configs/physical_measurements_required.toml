@@ -36,9 +36,9 @@ unit = "us"
 # Importance level for completing this measurement.
 priority = "must"
 # Why this value cannot be trusted from CAD alone.
-reason = "STEP geometry does not store PWM calibration."
+reason = "The product sheets provide electrical 500-2500 us endpoints for J1-J4, but not safe limits for the assembled mechanism; the supplied MG995 sheets omit pulse endpoints."
 # How to measure the value on the real robot.
-method = "Command conservative pulse values and expand until the safe limit is reached."
+method = "Starting inside the enforced 1000-2000 us gate, jog each installed servo slowly and record safe assembled limits; separately establish the MG995 electrical and gripper limits."
 
 [[items]]
 # Name of the required measurement.

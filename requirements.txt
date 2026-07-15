@@ -1,7 +1,1 @@
-numpy
-statemachine
-python-statemachine
-matplotlib
-board
-adafruit-pca9685
-pytest
+-e .[dev]

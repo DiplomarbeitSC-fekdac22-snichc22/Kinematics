@@ -24,15 +24,15 @@ J5_gripper = 0.0
 
 [poses.home]
 # Human-readable explanation of this pose.
-description = "Provisional software home; replace with measured repeatable home pose"
+description = "Provisional shelf-safe software home at robot target x=200, y=120, z=0 mm"
 # Base rotation angle for the home pose.
 J1_base = 0.0
 # Shoulder angle for the home pose.
-J2_shoulder = 90.0
+J2_shoulder = 101.79450227906935
 # Positive elbow bend angle for the home pose.
-J3_elbow = 135.0
+J3_elbow = 123.2089991563985
 # Wrist angle for the home pose.
-J4_wrist = -25.0
+J4_wrist = -45.00350143546785
 # Gripper command for the home pose.
 J5_gripper = 0.0
 # Marks that this pose still needs real-world measurement.
@@ -40,7 +40,7 @@ requires_measurement = true
 
 [poses.ready]
 # Human-readable explanation of this pose.
-description = "Provisional ready pose with gripper lifted away from workspace"
+description = "IK-derived provisional ready pose at robot target x=200, y=120, z=0 mm"
 # Base rotation angle for the ready pose.
 J1_base = 0.0
 # Shoulder angle for the ready pose.

@@ -66,8 +66,9 @@ def calculate_gripper_center(
         _angle_for_role(joint_angles_deg, servo, "theta4")
     )
 
-    # The current model stores J3 as a positive elbow bend.
-    # For the elbow-back configuration, the relative rotation is negative.
+    # J3 is stored as the positive interior angle, not as the signed relative
+    # rotation between the two links. For the elbow-back configuration the
+    # relative rotation is -(180 degrees - J3).
     elbow_relative_sign = float(
         settings.get("fk", {}).get(
             "elbow_relative_sign",
@@ -75,7 +76,10 @@ def calculate_gripper_center(
         )
     )
 
-    forearm_angle = theta2 + elbow_relative_sign * theta3
+    elbow_relative_angle = elbow_relative_sign * (
+        radians(180.0) - theta3
+    )
+    forearm_angle = theta2 + elbow_relative_angle
     gripper_approach_angle = forearm_angle + theta4
 
     radial_mm = (

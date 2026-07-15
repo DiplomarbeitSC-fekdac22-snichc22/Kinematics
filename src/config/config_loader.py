@@ -12,6 +12,7 @@ CONFIG_FILES = (
     "pca9685.toml",
     "poses.toml",
     "physical_measurements_required.toml",
+    "webots_simulation.toml",
 )
 
 
