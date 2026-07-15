@@ -378,21 +378,35 @@ PROTO RobotArm [
                                   # by Webots' SliderJoint reference pose.
                                   translation 0.119 0.040 0
                                   children [
-                                    Shape {
-                                      appearance DEF GRIPPER_RUBBER PBRAppearance {
-                                        baseColor 0.08 0.09 0.10
-                                        roughness 0.95
-                                        metalness 0
-                                      }
-                                      geometry Box {
-                                        size 0.055 0.010 0.060
-                                      }
+                                    # The finger starts in front of the wrist
+                                    # housing. The old 55 mm centred box
+                                    # overlapped the housing and stopped this
+                                    # slider several millimetres before open.
+                                    Pose {
+                                      translation 0.035 0 0
+                                      children [
+                                        Shape {
+                                          appearance DEF GRIPPER_RUBBER PBRAppearance {
+                                            baseColor 0.08 0.09 0.10
+                                            roughness 0.95
+                                            metalness 0
+                                          }
+                                          geometry Box {
+                                            size 0.030 0.010 0.060
+                                          }
+                                        }
+                                      ]
                                     }
                                   ]
                                   name "left gripper jaw"
                                   contactMaterial "gripper_rubber"
-                                  boundingObject Box {
-                                    size 0.055 0.010 0.060
+                                  boundingObject Pose {
+                                    translation 0.035 0 0
+                                    children [
+                                      Box {
+                                        size 0.030 0.010 0.060
+                                      }
+                                    ]
                                   }
                                   physics Physics {
                                     density -1
@@ -427,17 +441,27 @@ PROTO RobotArm [
                                   # configured -Y axis for the right jaw.
                                   translation 0.119 -0.040 0
                                   children [
-                                    Shape {
-                                      appearance USE GRIPPER_RUBBER
-                                      geometry Box {
-                                        size 0.055 0.010 0.060
-                                      }
+                                    Pose {
+                                      translation 0.035 0 0
+                                      children [
+                                        Shape {
+                                          appearance USE GRIPPER_RUBBER
+                                          geometry Box {
+                                            size 0.030 0.010 0.060
+                                          }
+                                        }
+                                      ]
                                     }
                                   ]
                                   name "right gripper jaw"
                                   contactMaterial "gripper_rubber"
-                                  boundingObject Box {
-                                    size 0.055 0.010 0.060
+                                  boundingObject Pose {
+                                    translation 0.035 0 0
+                                    children [
+                                      Box {
+                                        size 0.030 0.010 0.060
+                                      }
+                                    ]
                                   }
                                   physics Physics {
                                     density -1

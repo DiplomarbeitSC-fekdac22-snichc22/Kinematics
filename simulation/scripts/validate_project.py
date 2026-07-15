@@ -91,6 +91,9 @@ def main() -> int:
     settings = _load_toml("kinematics_settings.toml")
     poses = _load_toml("poses.toml")
 
+    if simulation["stack_revision"] != "2026-07-15-v5":
+        raise AssertionError("Unexpected Webots stack revision")
+
     model = simulation["model"]
     links = geometry["link_lengths_mm"]
     assert model["link_1_mm"] == links["L1_shoulder_to_elbow"]
@@ -179,6 +182,21 @@ def main() -> int:
     # displacement. Omitting it makes Webots snap the jaw into a new reference
     # pose when physics starts.
     open_position = float(simulation["gripper"]["open_slider_position_m"])
+    closed_position = float(simulation["gripper"]["closed_slider_position_m"])
+    minimum_open = float(
+        simulation["gripper"]["minimum_functional_open_position_m"]
+    )
+    if not closed_position < minimum_open <= open_position:
+        raise AssertionError(
+            "Functional gripper opening must lie between closed and nominal open"
+        )
+    functional_gap = 2.0 * (
+            minimum_open - float(simulation["gripper"]["jaw_half_width_m"])
+    )
+    if functional_gap < 0.050:
+        raise AssertionError(
+            "Functional gripper opening cannot clear the 50 mm pick object"
+        )
     for expected in (
             f"translation 0.119 {open_position:.3f} 0",
             f"translation 0.119 {-open_position:.3f} 0",
@@ -198,6 +216,18 @@ def main() -> int:
             raise AssertionError(
                 f"Gripper motor dynamics are not synchronized: {expected}"
             )
+    if robot_text.count("translation 0.035 0 0") < 4:
+        raise AssertionError(
+            "Gripper visual and collision fingers must start ahead of the wrist housing"
+        )
+    if robot_text.count("size 0.030 0.010 0.060") < 4:
+        raise AssertionError(
+            "Gripper finger collision boxes are not synchronized"
+        )
+    if "size 0.055 0.010 0.060" in robot_text:
+        raise AssertionError(
+            "Legacy gripper boxes overlap the wrist housing and block opening"
+        )
 
     tof = simulation["tof"]
     tof_checks = (

@@ -128,6 +128,33 @@ class ContactFakeRobot(FakeRobot):
         return 0
 
 
+class ShortOpenFakeRobot(FakeRobot):
+    """Model the repeatable Webots equilibrium below the nominal open stop."""
+
+    def step(self, time_step_ms: int) -> int:
+        assert time_step_ms == 16
+        self.steps += 1
+
+        for joint in (
+                "J1_base",
+                "J2_shoulder",
+                "J3_elbow",
+                "J4_wrist",
+        ):
+            motor = self.devices[joint]
+            motor.sensor.value = motor.position
+
+        limits = {
+            "J5_gripper_left": 0.0365,
+            "J5_gripper_right": 0.0375,
+        }
+        for joint, open_limit in limits.items():
+            motor = self.devices[joint]
+            motor.sensor.value = min(motor.position, open_limit)
+
+        return 0
+
+
 def test_coordinate_frame_round_trip() -> None:
     webots = robot_to_webots(230.0, 180.0, 60.0)
     assert webots == pytest.approx((0.230, -0.060, 0.320))
@@ -208,6 +235,21 @@ def test_gripper_accepts_stable_object_contact_before_fully_closed() -> None:
     assert robot.devices["J5_gripper_right_sensor"].value == pytest.approx(0.030)
 
 
+def test_gripper_accepts_a_functional_opening_below_nominal_stop() -> None:
+    robot = ShortOpenFakeRobot()
+    sink = WebotsMotionSink(robot, config_dir=CONFIG_DIR)
+
+    sink.send(
+        MotionCommand(
+            name="open_gripper",
+            pulses_us={"J5_gripper": 1200},
+        )
+    )
+
+    assert robot.devices["J5_gripper_left_sensor"].value == pytest.approx(0.0365)
+    assert robot.devices["J5_gripper_right_sensor"].value == pytest.approx(0.0375)
+
+
 def test_repository_state_machine_completes_through_webots_sink() -> None:
     robot = FakeRobot()
     sink = WebotsMotionSink(robot, config_dir=CONFIG_DIR)
@@ -252,6 +294,7 @@ def test_webots_model_config_matches_primary_robot_configs() -> None:
     gripper = simulation["gripper"]
     assert gripper["max_acceleration_m_s2"] == pytest.approx(0.10)
     assert gripper["max_force_n"] == pytest.approx(1.0)
+    assert gripper["minimum_functional_open_position_m"] == pytest.approx(0.035)
     opening_m = 2.0 * (
             gripper["open_slider_position_m"]
             - gripper["jaw_half_width_m"]

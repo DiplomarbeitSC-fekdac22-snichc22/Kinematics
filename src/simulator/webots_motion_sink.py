@@ -55,6 +55,7 @@ class _SettleTarget:
     position: float
     tolerance: float
     initial_position: float
+    minimum_acceptable_position: float | None = None
     allow_contact: bool = False
     contact_minimum_motion: float = 0.0
     contact_stability_delta: float = 0.0
@@ -66,6 +67,7 @@ class _GripperBinding:
     sensors: tuple[_PositionSensor, _PositionSensor]
     open_position: float
     closed_position: float
+    minimum_functional_open_position: float
     tolerance: float
     open_pulse_us: int
     closed_pulse_us: int
@@ -161,6 +163,11 @@ class WebotsMotionSink:
             pulse_us = int(command.pulses_us[gripper_joint])
             position = self._gripper_position(pulse_us)
             allow_contact = pulse_us == self.gripper.closed_pulse_us
+            minimum_acceptable_position = (
+                self.gripper.minimum_functional_open_position
+                if pulse_us == self.gripper.open_pulse_us
+                else None
+            )
 
             for index, (motor, sensor) in enumerate(
                     zip(
@@ -180,6 +187,9 @@ class WebotsMotionSink:
                         position=position,
                         tolerance=self.gripper.tolerance,
                         initial_position=float(sensor.getValue()),
+                        minimum_acceptable_position=(
+                            minimum_acceptable_position
+                        ),
                         allow_contact=allow_contact,
                         contact_minimum_motion=(
                             self.gripper.contact_minimum_motion
@@ -279,6 +289,9 @@ class WebotsMotionSink:
             sensors=sensors,
             open_position=open_position,
             closed_position=float(config["closed_slider_position_m"]),
+            minimum_functional_open_position=float(
+                config["minimum_functional_open_position_m"]
+            ),
             tolerance=float(config["position_tolerance_m"]),
             open_pulse_us=int(commands["open_pulse_us"]),
             closed_pulse_us=int(commands["closed_pulse_us"]),
@@ -444,6 +457,12 @@ class WebotsMotionSink:
             return False
 
         if abs(position - target.position) <= target.tolerance:
+            return True
+
+        if (
+                target.minimum_acceptable_position is not None
+                and position >= target.minimum_acceptable_position
+        ):
             return True
 
         if not target.allow_contact:

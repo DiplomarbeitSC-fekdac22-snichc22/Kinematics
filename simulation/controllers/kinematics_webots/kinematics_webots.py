@@ -54,6 +54,11 @@ def main() -> int:
         x_mm, y_mm, z_mm = args.target_mm
 
         print(
+            "[WEBOTS] Stack revision: "
+            f"{sink.simulation['stack_revision']}"
+        )
+
+        print(
             "[WEBOTS] Starting repository state machine at target "
             f"x={x_mm:.1f}, y={y_mm:.1f}, z={z_mm:.1f} mm"
         )

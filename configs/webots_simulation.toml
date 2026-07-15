@@ -2,7 +2,7 @@
 # Lengths in this file use metres where the field name ends in `_m` and
 # millimetres where it ends in `_mm`. Angles use degrees or radians as named.
 
-schema_version = "1.2"
+schema_version = "1.3"
 webots_release = "R2025a"
 
 [timing]
@@ -65,11 +65,6 @@ closed_slider_position_m = 0.010
 jaw_half_width_m = 0.005
 position_tolerance_m = 0.0005
 max_velocity_m_s = 0.020
-# Prevent the 25 g simulated jaws from receiving an unrealistically abrupt
-# impulse. These values are intentionally modest but still close 30 mm in a
-# few seconds.
-max_acceleration_m_s2 = 0.10
-max_force_n = 1.0
 # A closing jaw may stop against the object before reaching its empty-gripper
 # target. Treat it as a successful grasp only after it moved and then remained
 # stationary against contact for the normal settle interval.
@@ -91,10 +86,8 @@ height_px = 360
 horizontal_field_of_view_deg = 102.0
 # Both camera optical centres are fixed at the same height relative to the
 # shoulder origin. Y is Webots-left, so the signs distinguish the two views.
-# Local Z is relative to the roof-mounted shoulder at world Z=0.43175 m;
-# these values place both optical centres at world Z=0.420 m.
-left_translation_m = [-0.190, 0.110, -0.01175]
-right_translation_m = [-0.190, -0.110, -0.01175]
+left_translation_m = [-0.190, 0.110, 0.35175]
+right_translation_m = [-0.190, -0.110, 0.35175]
 pitch_rotation_rad = -1.279
 
 [tof]
@@ -110,10 +103,7 @@ maximum_range_m = 1.2
 noise_standard_deviation_m = 0.002
 
 [model]
-# The arm is bolted to the roof. The shoulder axis is h0 below the roof,
-# therefore 500 - 68.25 = 431.75 mm above the workcell floor.
-shoulder_distance_below_roof_mm = 68.25
-shoulder_height_from_floor_mm = 431.75
+shoulder_height_from_floor_mm = 68.25
 link_1_mm = 200.0
 link_2_mm = 164.0
 tool_length_mm = 124.922
