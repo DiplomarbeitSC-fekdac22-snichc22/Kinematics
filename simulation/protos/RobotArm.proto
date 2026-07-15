@@ -5,7 +5,8 @@
 # intentionally used until per-link CAD meshes and measured inertias are available.
 
 PROTO RobotArm [
-  field SFVec3f    translation   0 0 0.06825
+  # Shoulder origin is 68.25 mm below the 500 mm-high enclosure roof.
+  field SFVec3f    translation   0 0 0.43175
   field SFRotation rotation      0 0 1 0
   field SFString   name          "PIA robot arm"
   field SFString   controller    "kinematics_webots"
@@ -17,9 +18,9 @@ PROTO RobotArm [
     rotation IS rotation
     children [
       # Fixed base and mounting plate. The Robot origin is the shoulder axis,
-      # 68.25 mm above the workcell floor.
+      # 68.25 mm below the workcell roof.
       Pose {
-        translation 0 0 -0.034125
+        translation 0 0 0.034125
         children [
           Shape {
             appearance DEF DARK_METAL PBRAppearance {
@@ -34,7 +35,7 @@ PROTO RobotArm [
         ]
       }
       Pose {
-        translation 0 0 -0.066
+        translation 0 0 0.066
         children [
           Shape {
             appearance DEF LIGHT_METAL PBRAppearance {
@@ -52,23 +53,30 @@ PROTO RobotArm [
       # Both fixed Camera Module 3 Wide approximations are owned by the Robot
       # controller but remain fixed because they are outside the joint chain.
       Pose {
-        translation -0.190 0.110 0.35175
+        translation -0.190 0.110 -0.01175
         rotation 0 1 0 -1.279
         children [
-          Shape {
-            appearance DEF CAMERA_BLACK PBRAppearance {
-              baseColor 0.025 0.028 0.032
-              roughness 0.35
-              metalness 0.1
-            }
-            geometry Box {
-              size 0.026 0.030 0.009
-            }
+          # Keep the opaque housing behind the optical centre. Placing the
+          # Camera inside this box makes its image appear blank.
+          Pose {
+            translation 0 0 0.006
+            children [
+              Shape {
+                appearance DEF CAMERA_BLACK PBRAppearance {
+                  baseColor 0.025 0.028 0.032
+                  roughness 0.35
+                  metalness 0.1
+                }
+                geometry Box {
+                  size 0.026 0.030 0.009
+                }
+              }
+            ]
           }
         ]
       }
       Camera {
-        translation -0.190 0.110 0.35175
+        translation -0.190 0.110 -0.01175
         rotation 0 1 0 -1.279
         name "camera_left"
         fieldOfView 1.780236
@@ -77,19 +85,24 @@ PROTO RobotArm [
         near 0.01
       }
       Pose {
-        translation -0.190 -0.110 0.35175
+        translation -0.190 -0.110 -0.01175
         rotation 0 1 0 -1.279
         children [
-          Shape {
-            appearance USE CAMERA_BLACK
-            geometry Box {
-              size 0.026 0.030 0.009
-            }
+          Pose {
+            translation 0 0 0.006
+            children [
+              Shape {
+                appearance USE CAMERA_BLACK
+                geometry Box {
+                  size 0.026 0.030 0.009
+                }
+              }
+            ]
           }
         ]
       }
       Camera {
-        translation -0.190 -0.110 0.35175
+        translation -0.190 -0.110 -0.01175
         rotation 0 1 0 -1.279
         name "camera_right"
         fieldOfView 1.780236
@@ -157,11 +170,11 @@ PROTO RobotArm [
             # a link that points along +X at zero degrees.
             HingeJoint {
               jointParameters HingeJointParameters {
-                position 1.776649
+                position -1.720830
                 axis 0 -1 0
                 anchor 0 0 0
-                minStop 0
-                maxStop 2.792527
+                minStop -2.356194
+                maxStop 2.356194
                 dampingConstant 0.10
                 staticFriction 0.03
               }
@@ -169,8 +182,8 @@ PROTO RobotArm [
                 RotationalMotor {
                   name "J2_shoulder"
                   maxVelocity 0.785398
-                  minPosition 0
-                  maxPosition 2.792527
+                  minPosition -2.356194
+                  maxPosition 2.356194
                   maxTorque 2.11
                 }
                 PositionSensor {
@@ -209,15 +222,15 @@ PROTO RobotArm [
                   }
 
                   # J3's Webots position is 180 degrees minus the configured
-                  # interior elbow angle. The +Y axis therefore produces the
-                  # elbow-back relative rotation used by IK and FK.
+                  # interior elbow angle. The -Y axis produces the positive
+                  # relative rotation of the roof-mounted elbow-back branch.
                   HingeJoint {
                     jointParameters HingeJointParameters {
-                      position 0.991190
-                      axis 0 1 0
+                      position 2.597030
+                      axis 0 -1 0
                       anchor 0.200 0 0
                       minStop 0
-                      maxStop 3.141593
+                      maxStop 3.141592
                       dampingConstant 0.08
                       staticFriction 0.025
                     }
@@ -226,7 +239,7 @@ PROTO RobotArm [
                         name "J3_elbow"
                         maxVelocity 0.785398
                         minPosition 0
-                        maxPosition 3.141593
+                        maxPosition 3.141592
                         maxTorque 2.11
                       }
                       PositionSensor {
@@ -263,11 +276,11 @@ PROTO RobotArm [
 
                         HingeJoint {
                           jointParameters HingeJointParameters {
-                            position -0.785459
+                            position -0.876200
                             axis 0 -1 0
                             anchor 0.164 0 0
-                            minStop -2.094395
-                            maxStop 2.094395
+                            minStop -1.047198
+                            maxStop 1.047198
                             dampingConstant 0.05
                             staticFriction 0.015
                           }
@@ -275,8 +288,8 @@ PROTO RobotArm [
                             RotationalMotor {
                               name "J4_wrist"
                               maxVelocity 0.785398
-                              minPosition -2.094395
-                              maxPosition 2.094395
+                              minPosition -1.047198
+                              maxPosition 1.047198
                               maxTorque 2.11
                             }
                             PositionSensor {
@@ -359,6 +372,9 @@ PROTO RobotArm [
                                   }
                                 ]
                                 endPoint Solid {
+                                  # Endpoint translation includes the current
+                                  # +0.040 m slider displacement, as required
+                                  # by Webots' SliderJoint reference pose.
                                   translation 0.119 0.040 0
                                   children [
                                     Shape {
@@ -405,6 +421,8 @@ PROTO RobotArm [
                                   }
                                 ]
                                 endPoint Solid {
+                                  # The positive joint position lies along the
+                                  # configured -Y axis for the right jaw.
                                   translation 0.119 -0.040 0
                                   children [
                                     Shape {
@@ -523,7 +541,7 @@ PROTO RobotArm [
     synchronization TRUE
     selfCollision FALSE
     boundingObject Pose {
-      translation 0 0 -0.034125
+      translation 0 0 0.034125
       children [
         Box {
           size 0.110 0.100 0.06825

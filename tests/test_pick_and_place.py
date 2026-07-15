@@ -46,15 +46,15 @@ class PickAndPlaceRegressionTests(unittest.TestCase):
             advance.pulses_us,
             {
                 "J1_base": 1608,
-                "J2_shoulder": 1588,
-                "J3_elbow": 1560,
-                "J4_wrist": 1167,
+                "J2_shoulder": 777,
+                "J3_elbow": 1208,
+                "J4_wrist": 970,
             },
         )
 
         ready = next(command for command in sink.commands if command.name == "move_ready")
         self.assertAlmostEqual(ready.gripper_center_mm["x_mm"], 200.0, places=7)
-        self.assertAlmostEqual(ready.gripper_center_mm["y_mm"], 120.0, places=7)
+        self.assertAlmostEqual(ready.gripper_center_mm["y_mm"], 140.0, places=7)
         self.assertAlmostEqual(ready.gripper_center_mm["z_mm"], 0.0, places=7)
 
         deposit = next(command for command in sink.commands if command.name == "move_deposit")
@@ -63,7 +63,7 @@ class PickAndPlaceRegressionTests(unittest.TestCase):
         self.assertAlmostEqual(deposit.gripper_center_mm["y_mm"], 370.0, places=7)
         self.assertAlmostEqual(deposit.gripper_center_mm["z_mm"], 130.0, places=7)
         self.assertEqual(deposit.pulses_us["J1_base"], 2167)
-        self.assertEqual(deposit.pulses_us["J3_elbow"], 952)
+        self.assertEqual(deposit.pulses_us["J3_elbow"], 1660)
 
     def test_intermediate_targets_follow_down_positive_y_and_radial_offsets(self) -> None:
         machine = PickAndPlaceStateMachine(RecordingSink())

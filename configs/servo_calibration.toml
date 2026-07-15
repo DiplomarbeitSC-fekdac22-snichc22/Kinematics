@@ -5,7 +5,7 @@
 # Measure these values before commanding real hardware.
 
 # Version of this configuration file format.
-schema_version = "2.0"
+schema_version = "2.1"
 # Unit used for joint-angle values.
 units_angle = "deg"
 # Unit used for servo pulse-width values.
@@ -82,13 +82,13 @@ pca9685_channel = 2
 # Kinematic angle represented by this joint.
 kinematic_role = "theta2"
 # Mathematical angle corresponding to the configured center/zero reference.
-theta_zero_deg = 90.0
+theta_zero_deg = 0.0
 # Provisional home angle for this joint.
-theta_home_deg = 90.0
+theta_home_deg = -100.0
 # Provisional minimum safe mathematical angle.
-theta_min_deg = 0.0
+theta_min_deg = -135.0
 # Provisional maximum safe mathematical angle.
-theta_max_deg = 160.0
+theta_max_deg = 135.0
 # Direction sign from mathematical angle to servo pulse change.
 direction = 1
 # Pulse width corresponding to the zero/center position.
@@ -102,7 +102,7 @@ us_per_degree = 7.4074074074
 # Marks that this joint's values must be measured on the real robot.
 requires_physical_calibration = true
 # Extra calibration note for this joint.
-notes = "500-2500 us and 1500 us neutral are product-sheet values. Confirm mathematical zero, direction, and mechanical stops on the real arm."
+notes = "500-2500 us and 1500 us neutral are product-sheet values. Ceiling-mount mathematical zero, direction, and mechanical stops still require measurement."
 
 [joints.J3_elbow]
 # Physical function of this joint.

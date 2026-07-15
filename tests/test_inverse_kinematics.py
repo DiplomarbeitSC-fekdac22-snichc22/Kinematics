@@ -16,13 +16,13 @@ class InverseKinematicsRegressionTests(unittest.TestCase):
         self.assertTrue(result["reachable"])
         self.assertEqual(result["reasons"], [])
         self.assertAlmostEqual(result["angles_deg"]["base"], 14.6209, places=4)
-        self.assertAlmostEqual(result["angles_deg"]["shoulder"], 101.9297, places=4)
-        self.assertAlmostEqual(result["angles_deg"]["elbow"], 98.0622, places=4)
-        self.assertAlmostEqual(result["angles_deg"]["wrist"], -19.9919, places=4)
+        self.assertAlmostEqual(result["angles_deg"]["shoulder"], -97.6350, places=4)
+        self.assertAlmostEqual(result["angles_deg"]["elbow"], 50.5419, places=4)
+        self.assertAlmostEqual(result["angles_deg"]["wrist"], -31.8231, places=4)
         self.assertAlmostEqual(
             result["angles_deg"]["shoulder"]
-            + result["angles_deg"]["elbow"]
-            - 180.0
+            + 180.0
+            - result["angles_deg"]["elbow"]
             + result["angles_deg"]["wrist"],
             0.0,
             places=7,

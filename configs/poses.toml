@@ -4,7 +4,7 @@
 # Update after measuring physical home and safe limits.
 
 # Version of this configuration file format.
-schema_version = "1.2"
+schema_version = "1.3"
 # Unit used for all joint-angle values in this file.
 units_angle = "deg"
 
@@ -24,15 +24,15 @@ J5_gripper = 0.0
 
 [poses.home]
 # Human-readable explanation of this pose.
-description = "Provisional shelf-safe software home at robot target x=200, y=120, z=0 mm"
+description = "Provisional roof-mounted shelf-safe home at robot target x=200, y=140, z=0 mm"
 # Base rotation angle for the home pose.
 J1_base = 0.0
 # Shoulder angle for the home pose.
-J2_shoulder = 101.79450227906935
+J2_shoulder = -98.59631410321165
 # Positive elbow bend angle for the home pose.
-J3_elbow = 123.2089991563985
+J3_elbow = 31.20111959386486
 # Wrist angle for the home pose.
-J4_wrist = -45.00350143546785
+J4_wrist = -50.202566302923486
 # Gripper command for the home pose.
 J5_gripper = 0.0
 # Marks that this pose still needs real-world measurement.
@@ -40,15 +40,15 @@ requires_measurement = true
 
 [poses.ready]
 # Human-readable explanation of this pose.
-description = "IK-derived provisional ready pose at robot target x=200, y=120, z=0 mm"
+description = "IK-derived roof-mounted ready pose at robot target x=200, y=140, z=0 mm"
 # Base rotation angle for the ready pose.
 J1_base = 0.0
 # Shoulder angle for the ready pose.
-J2_shoulder = 101.79450227906935
+J2_shoulder = -98.59631410321165
 # Positive elbow bend angle for the ready pose.
-J3_elbow = 123.2089991563985
+J3_elbow = 31.20111959386486
 # Wrist angle for the ready pose.
-J4_wrist = -45.00350143546785
+J4_wrist = -50.202566302923486
 # Gripper command for the ready pose.
 J5_gripper = 0.0
 # Marks that this pose must be tested before real use.
@@ -56,15 +56,15 @@ requires_verification = true
 
 [poses.deposit]
 # Human-readable explanation of this pose.
-description = "Provisional joint fallback for the measured drop-off target; replace after its X distance and servo pose are measured."
+description = "IK-derived roof-mounted fallback for the measured drop-off target x=0, y=370, z=130 mm"
 # Base rotation angle for the deposit pose.
-J1_base = 45.0
+J1_base = 90.0
 # Shoulder angle for the deposit pose.
-J2_shoulder = 70.0
+J2_shoulder = -119.37702066934618
 # Positive elbow bend angle for the deposit pose.
-J3_elbow = 70.0
+J3_elbow = 111.6318276707909
 # Wrist angle for the deposit pose.
-J4_wrist = 0.0
+J4_wrist = 51.008848340137085
 # Gripper command for the deposit pose.
 J5_gripper = 0.0
 # Marks that this pose must be tested before real use.

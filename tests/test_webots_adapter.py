@@ -230,6 +230,8 @@ def test_webots_model_config_matches_primary_robot_configs() -> None:
         simulation["coordinate_mapping"]["top_reference_height_mm"]
         == settings["input_coordinates"]["max_height_mm"]
     )
+    assert model["shoulder_distance_below_roof_mm"] == pytest.approx(68.25)
+    assert model["shoulder_height_from_floor_mm"] == pytest.approx(431.75)
 
     gripper = simulation["gripper"]
     opening_m = 2.0 * (

@@ -12,6 +12,7 @@ WorldInfo {
   ]
   title "PIA Robot Arm Pick and Place"
   basicTimeStep 16
+  # R2025a WorldInfo.gravity is a scalar magnitude along the down axis.
   gravity 9.81
   contactProperties [
     ContactProperties {
@@ -53,6 +54,7 @@ PointLight {
   location 0.15 0 0.62
   intensity 0.8
   radius 2
+  attenuation 0 0 1
   castShadows TRUE
 }
 

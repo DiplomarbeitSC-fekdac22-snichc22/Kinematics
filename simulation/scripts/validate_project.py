@@ -69,6 +69,19 @@ def main() -> int:
         _assert_balanced(path)
 
     world_text = WORLD.read_text(encoding="utf-8")
+    if "gravity 9.81" not in world_text:
+        raise AssertionError(
+            "WorldInfo.gravity must be the R2025a scalar value 9.81"
+        )
+    if re.search(r"\bgravity\s+[-+0-9.eE]+\s+[-+0-9.eE]+", world_text):
+        raise AssertionError(
+            "WorldInfo.gravity is scalar in R2025a, not an SFVec3f"
+        )
+    if "attenuation 0 0 1" not in world_text:
+        raise AssertionError(
+            "PointLight must use quadratic attenuation to avoid the Webots warning"
+        )
+
     for target in re.findall(r'EXTERNPROTO\s+"([^"]+)"', world_text):
         resolved = (WORLD.parent / target).resolve()
         if not resolved.is_file():
@@ -88,6 +101,16 @@ def main() -> int:
         simulation["coordinate_mapping"]["top_reference_height_mm"]
         == settings["input_coordinates"]["max_height_mm"]
     )
+    top_reference_mm = float(
+        simulation["coordinate_mapping"]["top_reference_height_mm"]
+    )
+    shoulder_below_roof_mm = float(
+        model["shoulder_distance_below_roof_mm"]
+    )
+    expected_shoulder_height_mm = (
+        top_reference_mm - shoulder_below_roof_mm
+    )
+    assert model["shoulder_height_from_floor_mm"] == expected_shoulder_height_mm
 
     ready = poses["poses"]["ready"]
     expected_initial_positions = {
@@ -97,6 +120,12 @@ def main() -> int:
         "J4_wrist": float(ready["J4_wrist"]),
     }
     robot_text = ROBOT_PROTO.read_text(encoding="utf-8")
+    expected_robot_z = expected_shoulder_height_mm / 1000.0
+    if f"translation   0 0 {expected_robot_z:.5f}" not in robot_text:
+        raise AssertionError(
+            "Robot shoulder origin is not synchronized with the roof mount: "
+            f"expected world Z={expected_robot_z:.5f} m"
+        )
     for joint, value in expected_initial_positions.items():
         config = simulation["joints"][joint]
         device = config["motor_device"]
@@ -128,6 +157,37 @@ def main() -> int:
     camera_fov = radians(float(cameras["horizontal_field_of_view_deg"]))
     if robot_text.count(f"fieldOfView {camera_fov:.6f}") < cameras["count"]:
         raise AssertionError("Webots camera field of view does not match configuration")
+    for side in ("left", "right"):
+        translation = cameras[f"{side}_translation_m"]
+        expected = "translation " + " ".join(
+            f"{float(value):.5f}" if index == 2 else f"{float(value):.3f}"
+            for index, value in enumerate(translation)
+        )
+        if robot_text.count(expected) < 2:
+            raise AssertionError(
+                f"Webots {side} camera pose does not match configuration: {expected}"
+            )
+    if robot_text.count("translation 0 0 0.006") < cameras["count"]:
+        raise AssertionError(
+            "Camera housings must sit behind, not around, the optical centres"
+        )
+
+    # R2025a requires HingeJoint.maxStop to be strictly less than pi.
+    if "maxStop 3.141593" in robot_text or "maxStop 3.141592" not in robot_text:
+        raise AssertionError("J3 maxStop must be represented just below pi")
+
+    # Slider endpoint translations must include the configured initial joint
+    # displacement. Omitting it makes Webots snap the jaw into a new reference
+    # pose when physics starts.
+    open_position = float(simulation["gripper"]["open_slider_position_m"])
+    for expected in (
+        f"translation 0.119 {open_position:.3f} 0",
+        f"translation 0.119 {-open_position:.3f} 0",
+    ):
+        if expected not in robot_text:
+            raise AssertionError(
+                f"Gripper slider reference pose is inconsistent: {expected}"
+            )
 
     tof = simulation["tof"]
     tof_checks = (

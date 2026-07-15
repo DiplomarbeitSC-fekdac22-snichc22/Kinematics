@@ -24,7 +24,7 @@ class PhysicalMeasurementsConfigTests(unittest.TestCase):
         self.assertEqual(coordinates["max_height_mm"], enclosure["height"])
         self.assertEqual(
             coordinates["base_rotation_axis_at_mounting_plate_mm"],
-            [0.0, enclosure["height"], 0.0],
+            [0.0, 0.0, 0.0],
         )
         self.assertEqual(
             (bounds["x_min"], bounds["x_max"]),
@@ -132,6 +132,18 @@ class PhysicalMeasurementsConfigTests(unittest.TestCase):
         )
         self.assertEqual(simulation["tof"]["minimum_range_m"], 0.001)
         self.assertEqual(simulation["tof"]["maximum_range_m"], 1.2)
+
+    def test_webots_robot_is_mounted_from_the_roof(self) -> None:
+        simulation = self.config["webots_simulation"]
+        model = simulation["model"]
+        top = simulation["coordinate_mapping"]["top_reference_height_mm"]
+
+        self.assertEqual(model["shoulder_distance_below_roof_mm"], 68.25)
+        self.assertEqual(model["shoulder_height_from_floor_mm"], 431.75)
+        self.assertEqual(
+            model["shoulder_height_from_floor_mm"],
+            top - model["shoulder_distance_below_roof_mm"],
+        )
 
 
 if __name__ == "__main__":

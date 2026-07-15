@@ -2,7 +2,7 @@
 # Lengths in this file use metres where the field name ends in `_m` and
 # millimetres where it ends in `_mm`. Angles use degrees or radians as named.
 
-schema_version = "1.0"
+schema_version = "1.1"
 webots_release = "R2025a"
 
 [timing]
@@ -86,8 +86,10 @@ height_px = 360
 horizontal_field_of_view_deg = 102.0
 # Both camera optical centres are fixed at the same height relative to the
 # shoulder origin. Y is Webots-left, so the signs distinguish the two views.
-left_translation_m = [-0.190, 0.110, 0.35175]
-right_translation_m = [-0.190, -0.110, 0.35175]
+# Local Z is relative to the roof-mounted shoulder at world Z=0.43175 m;
+# these values place both optical centres at world Z=0.420 m.
+left_translation_m = [-0.190, 0.110, -0.01175]
+right_translation_m = [-0.190, -0.110, -0.01175]
 pitch_rotation_rad = -1.279
 
 [tof]
@@ -103,7 +105,10 @@ maximum_range_m = 1.2
 noise_standard_deviation_m = 0.002
 
 [model]
-shoulder_height_from_floor_mm = 68.25
+# The arm is bolted to the roof. The shoulder axis is h0 below the roof,
+# therefore 500 - 68.25 = 431.75 mm above the workcell floor.
+shoulder_distance_below_roof_mm = 68.25
+shoulder_height_from_floor_mm = 431.75
 link_1_mm = 200.0
 link_2_mm = 164.0
 tool_length_mm = 124.922

@@ -50,6 +50,7 @@ class _JointBinding:
 
 @dataclass(frozen=True)
 class _SettleTarget:
+    name: str
     sensor: _PositionSensor
     position: float
     tolerance: float
@@ -144,6 +145,7 @@ class WebotsMotionSink:
             )
             targets.append(
                 _SettleTarget(
+                    name=joint_name,
                     sensor=binding.sensor,
                     position=webots_position,
                     tolerance=binding.tolerance,
@@ -160,13 +162,20 @@ class WebotsMotionSink:
             position = self._gripper_position(pulse_us)
             allow_contact = pulse_us == self.gripper.closed_pulse_us
 
-            for motor, sensor in zip(
-                self.gripper.motors,
-                self.gripper.sensors,
-                strict=True,
+            for index, (motor, sensor) in enumerate(
+                zip(
+                    self.gripper.motors,
+                    self.gripper.sensors,
+                    strict=True,
+                )
             ):
                 targets.append(
                     _SettleTarget(
+                        name=(
+                            "J5_gripper_left"
+                            if index == 0
+                            else "J5_gripper_right"
+                        ),
                         sensor=sensor,
                         position=position,
                         tolerance=self.gripper.tolerance,
@@ -384,9 +393,27 @@ class WebotsMotionSink:
 
             previous_positions = positions
 
+        unresolved = [
+            (
+                f"{target.name}: actual={position:.4f}, "
+                f"target={target.position:.4f}, "
+                f"error={abs(position - target.position):.4f}"
+            )
+            for target, position in zip(
+                targets,
+                previous_positions,
+                strict=True,
+            )
+            if not self._target_is_settled(
+                target,
+                position,
+                position,
+            )
+        ]
         raise TimeoutError(
             f"Webots command {command_name!r} did not settle within "
-            f"{self.command_timeout_s:.1f} s"
+            f"{self.command_timeout_s:.1f} s; "
+            + "; ".join(unresolved)
         )
 
     @staticmethod

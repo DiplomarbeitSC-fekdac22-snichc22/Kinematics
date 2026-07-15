@@ -67,8 +67,8 @@ def calculate_gripper_center(
     )
 
     # J3 is stored as the positive interior angle, not as the signed relative
-    # rotation between the two links. For the elbow-back configuration the
-    # relative rotation is -(180 degrees - J3).
+    # rotation between the two links. The configured sign selects the
+    # roof-mounted elbow branch used by IK and Webots.
     elbow_relative_sign = float(
         settings.get("fk", {}).get(
             "elbow_relative_sign",
@@ -113,7 +113,7 @@ def calculate_gripper_center(
     )
 
     if y_direction == "down":
-        shoulder_y_from_top_mm = base_y - h0
+        shoulder_y_from_top_mm = base_y + h0
         y_mm = shoulder_y_from_top_mm - gripper_y_math_mm
     elif y_direction == "up":
         y_mm = h0 + gripper_y_math_mm

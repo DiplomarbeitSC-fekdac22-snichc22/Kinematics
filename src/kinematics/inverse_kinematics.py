@@ -74,7 +74,7 @@ def calculate_angles(x_mm: float, y_mm: float, z_mm: float, config_dir: Path | s
     y_direction = input_coordinates.get("y_positive_direction", "up")
     if y_direction == "down":
         # Input y is a distance from the top, but the triangle math uses up as positive.
-        shoulder_y_from_top = base_y - h0
+        shoulder_y_from_top = base_y + h0
         target_y = shoulder_y_from_top - y_mm
     elif y_direction == "up":
         target_y = y_mm - h0
@@ -145,8 +145,6 @@ def calculate_angles(x_mm: float, y_mm: float, z_mm: float, config_dir: Path | s
     )
 
     if validation.get("check_side_view_orientation", False):
-        if preference == "elbow_back" and elbow_r > 0.0:
-            reasons.append("elbow is not behind the shoulder for elbow_back preference")
         if wrist_r < 0.0:
             reasons.append("wrist target is not in front of the shoulder")
 
