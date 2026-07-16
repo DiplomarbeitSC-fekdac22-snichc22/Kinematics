@@ -98,6 +98,8 @@ max_step_deg = 2.0
 # Maximum allowed joint speed during generated motion.
 max_joint_speed_deg_per_s = 45.0
 # This is kinematics-side path smoothing only. Servo acceleration/current limiting is hardware-specific.
+# Maximum PWM change for one joint in one frame.
+max_step_pwm_us = 20
 
 [target_offsets]
 # Vertical offset used to create a safe pre-grasp pose above the target.
@@ -162,12 +164,3 @@ y_max = 500.0
 z_min = -180.0
 # Right edge of the 360 mm wide box relative to its centerline.
 z_max = 180.0
-
-[motion_interpolation]
-profile = "smoothstep"
-step_time_s = 0.02
-max_step_deg = 2.0
-max_joint_speed_deg_per_s = 45.0
-
-# Maximum PWM change for one joint in one frame.
-max_step_pwm_us = 20
