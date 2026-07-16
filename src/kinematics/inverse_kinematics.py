@@ -100,20 +100,17 @@ def calculate_angles(x_mm: float, y_mm: float, z_mm: float, config_dir: Path | s
         elbow_y = l1 * sin(shoulder_rad)
         return shoulder_rad, elbow_rad, elbow_r, elbow_y
 
-    branches = [solve_branch(-1.0), solve_branch(1.0)]
-    preference = ik["solution_preference"]
-    if preference == "elbow_back":
-        theta2_rad, theta3_rad, elbow_r, _ = min(branches, key=lambda branch: branch[2])
-    elif preference == "elbow_front":
-        theta2_rad, theta3_rad, elbow_r, _ = max(branches, key=lambda branch: branch[2])
-    elif preference == "elbow_down":
-        theta2_rad, theta3_rad, elbow_r, _ = min(branches, key=lambda branch: branch[3])
-    elif preference == "elbow_up":
-        theta2_rad, theta3_rad, elbow_r, _ = max(branches, key=lambda branch: branch[3])
-    else:
-        raise ValueError(f"Unsupported solution_preference: {preference!r}")
+    elbow_sign = float(
+        settings.get("fk", {}).get(
+            "elbow_relative_sign",
+            -1.0,
+        )
+    )
 
-    # Keep the shoulder convention consistent with geometry, FK, and configured limits.
+    theta2_rad, theta3_rad, elbow_r, _ = solve_branch(
+        elbow_sign
+    )
+
     theta2 = degrees(theta2_rad)
     theta3 = 180.0 - abs(degrees(theta3_rad))
     theta4 = degrees(approach - theta2_rad - theta3_rad)
