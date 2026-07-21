@@ -86,6 +86,26 @@ python simulation/scripts/validate_project.py
 python -m pytest
 ```
 
+### Run fault-injection tests
+
+The deterministic fault suite covers state-machine command failures,
+mid-trajectory transport failures, emergency-stop cancellation, ambiguous
+after-send delivery, PCA9685 partial writes, and best-effort output shutdown.
+
+```bash
+python -m pytest \
+  tests/test_fault_injection.py \
+  tests/test_pick_and_place_faults.py \
+  tests/test_motion_executor_faults.py \
+  tests/test_pca9685_faults.py
+```
+
+Fault rules can target a command name, a one-based sink call number, or both.
+`before_send` means the wrapped sink did not receive the command. `after_send`
+models an ambiguous acknowledgement failure after the wrapped sink accepted it.
+The full design and safety invariants are documented in
+`docs/fault_injection_testing.md`.
+
 Print the main geometry, pose and channel settings:
 
 ```bash
@@ -144,9 +164,11 @@ Available motion sinks:
 [//]: # (### Run Webots)
 
 [//]: # ()
+
 [//]: # (Set `WEBOTS_HOME` or place the `webots` executable on `PATH`.)
 
 [//]: # ()
+
 [//]: # (```bash)
 
 [//]: # (# Static project/configuration checks)
@@ -154,11 +176,13 @@ Available motion sinks:
 [//]: # (python simulation/scripts/validate_project.py)
 
 [//]: # ()
+
 [//]: # (# Open the simulation)
 
 [//]: # (./simulation/scripts/run_webots.sh)
 
 [//]: # ()
+
 [//]: # (# Headless fast smoke test)
 
 [//]: # (./simulation/scripts/smoke_test_webots.sh)
@@ -166,6 +190,7 @@ Available motion sinks:
 [//]: # (```)
 
 [//]: # ()
+
 [//]: # (The default simulation target is stored in `controllerArgs` inside `simulation/worlds/robot_arm_pick_and_place.wbt`.)
 
 ### Explore the workspace
