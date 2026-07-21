@@ -24,3 +24,17 @@ class ManipulabilityMetrics:
     normalized_manipulability: float
     weakest_task_direction: np.ndarray
     weakest_joint_direction: np.ndarray
+
+@dataclass(frozen=True)
+class ConfigurationAnalysis:
+    joint_angles_deg: dict[str, float]
+    jacobian: JacobianResult
+    metrics: ManipulabilityMetrics
+    base_axis_singularity: bool
+    elbow_singularity: bool
+    geometric_status: str
+    conditioning_status: str
+    joint_limit_margin: float
+    pulse_limit_margin: float
+    constraint_status: str
+    warnings: tuple[str, ...]
