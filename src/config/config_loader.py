@@ -13,6 +13,7 @@ CONFIG_FILES = (
     "poses.toml",
     "physical_measurements_required.toml",
     "webots_simulation.toml",
+    "singularity_analysis.toml"
 )
 
 

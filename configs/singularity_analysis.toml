@@ -1,0 +1,34 @@
+# Configuration for singularity, conditioning, and manipulability analysis.
+# Geometry, joint limits, and pulse calibration remain in their existing files.
+
+schema_version = "1.0"
+
+[task]
+# Analyze the complete controlled task used by the current IK solver:
+# three-dimensional gripper position plus planar gripper pitch.
+mode = "position_and_pitch"
+
+# Convert the angular task row into an equivalent linear displacement by
+# multiplying it by a characteristic length. "gripper_offset" selects Lg.
+characteristic_length_source = "gripper_offset"
+
+[numerics]
+# A singular value is treated as numerically zero when it is smaller than
+# rank_relative_tolerance * largest_singular_value.
+rank_relative_tolerance = 1e-9
+
+# Tolerance used for direct geometric tests such as rho = 0 or sin(delta) = 0.
+exact_singularity_tolerance = 1e-9
+
+[classification]
+# mu = sigma_min / sigma_max. Smaller values indicate worse conditioning.
+inverse_condition_warning = 0.05
+inverse_condition_severe = 0.01
+
+# Dimensionless analytical manipulability warning threshold.
+normalized_manipulability_warning = 0.10
+
+# Normalized distance to joint and pulse limits. 0 means at a limit, 1 means
+# centered in the available interval.
+joint_limit_warning_margin = 0.10
+pulse_limit_warning_margin = 0.10
