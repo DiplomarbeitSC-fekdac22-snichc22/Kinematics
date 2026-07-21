@@ -52,6 +52,7 @@ def analyze_configuration(
     metrics = calculate_manipulability_metrics(
         scaled_jacobian=jacobian_result.scaled_jacobian,
         radial_distance_mm=jacobian_result.radial_distance_mm,
+        elbow_relative_angle_rad=jacobian_result.elbow_relative_angle_rad,
         maximum_radial_reach_mm=maximum_radial_reach,
         rank_relative_tolerance=float(numerical["rank_relative_tolerance"]),
     )
