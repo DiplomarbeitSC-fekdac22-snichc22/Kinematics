@@ -20,6 +20,49 @@ _PCA9685_RESOLUTION_COUNT = 4096
 _CIRCUITPYTHON_DUTY_CYCLE_STEPS = 65536
 
 
+class Pca9685WriteError(RuntimeError):
+    """Raised when a channel write fails during a motion command."""
+    def __init__(
+            self,
+            *,
+            command_name: str,
+            joint_name: str,
+            channel: int,
+            disable_failures: tuple[int, ...],
+            cause: Exception,
+    ) -> None:
+        self.command_name = command_name
+        self.joint_name = joint_name
+        self.channel = channel
+        self.disable_failures = disable_failures
+        self.cause = cause
+
+        if disable_failures:
+            disable_status = (
+                "; best-effort output disable also failed on channels "
+                f"{disable_failures}"
+            )
+        else:
+            disable_status = "; all outputs were disabled"
+
+        super().__init__(
+            f"PCA9685 write failed for {joint_name} on channel {channel} "
+            f"while executing {command_name!r}: "
+            f"{type(cause).__name__}: {cause}{disable_status}"
+        )
+
+
+class Pca9685DisableError(RuntimeError):
+    """Raised after all channels were attempted but some could not be disabled."""
+
+    def __init__(self, failed_channels: tuple[int, ...]) -> None:
+        self.failed_channels = failed_channels
+        super().__init__(
+            "Failed to disable PCA9685 outputs on channels "
+            f"{failed_channels}"
+        )
+
+
 @dataclass(frozen=True)
 class _JointOutputs:
     channel: int
@@ -79,7 +122,7 @@ class Pca9685MotionSink:
         """Validate and send one command."""
         self._ensure_open()
 
-        writes: list[tuple[int, int]] = []
+        writes: list[tuple[str, int, int]] = []
 
         for joint_name, pulse_us in command.pulses_us.items():
             output = self._joint_outputs.get(joint_name)
@@ -104,10 +147,20 @@ class Pca9685MotionSink:
 
             duty_cycle = self.pulse_us_to_duty_cycle(pulse_us)
 
-            writes.append((output.channel, duty_cycle))
+            writes.append((joint_name, output.channel, duty_cycle))
 
-        for channel, duty_cycle in writes:
-            self._pca.channels[channel].duty_cycle = duty_cycle
+        for joint_name, channel, duty_cycle in writes:
+            try:
+                self._pca.channels[channel].duty_cycle = duty_cycle
+            except Exception as exc:
+                disable_failures = self._disable_all_best_effort()
+                raise Pca9685WriteError(
+                    command_name=command.name,
+                    joint_name=joint_name,
+                    channel=channel,
+                    disable_failures=disable_failures,
+                    cause=exc,
+                ) from exc
 
     def pulse_us_to_duty_cycle(self, pulse_us: int) -> int:
         """Convert a pulse width in microseconds to a PCA9685 duty cycle."""
@@ -124,8 +177,20 @@ class Pca9685MotionSink:
         """Disable all servo outputs."""
         self._ensure_open()
 
+        failed_channels = self._disable_all_best_effort()
+        if failed_channels:
+            raise Pca9685DisableError(failed_channels)
+
+    def _disable_all_best_effort(self) -> tuple[int, ...]:
+        failed_channels: list[int] = []
+
         for channel in range(self._channel_count):
-            self._pca.channels[channel].duty_cycle = 0
+            try:
+                self._pca.channels[channel].duty_cycle = 0
+            except Exception:
+                failed_channels.append(channel)
+
+        return tuple(failed_channels)
 
     def close(self) -> None:
         """Disable outputs and release hardware resources."""

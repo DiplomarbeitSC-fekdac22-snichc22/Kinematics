@@ -10,6 +10,29 @@ class MotionCancelled(RuntimeError):
     """Raised when the emergency-stop flag cancels movement."""
 
 
+class MotionExecutionError(RuntimeError):
+    """Wrap a sink failure with trajectory-frame context."""
+    def __init__(
+            self,
+            *,
+            command_name: str,
+            frame_number: int,
+            frame_count: int,
+            pulses_us: dict[str, int],
+            cause: Exception,
+    ) -> None:
+        self.command_name = command_name
+        self.frame_number = frame_number
+        self.frame_count = frame_count
+        self.pulses_us = dict(pulses_us)
+        self.cause = cause
+        super().__init__(
+            f"Motion {command_name!r} failed at frame "
+            f"{frame_number}/{frame_count}: "
+            f"{type(cause).__name__}: {cause}"
+        )
+
+
 class MotionExecutor:
     """Blocking trajectory executor implementing MotionCommandSink."""
     def __init__(
@@ -52,13 +75,13 @@ class MotionExecutor:
             self.max_step_us,
         )
 
-        for index, pulses in enumerate(frames):
+        for frame_number, pulses in enumerate(frames, start=1):
             if self.emergency_stop.is_set():
                 raise MotionCancelled(
                     f"Motion {command.name} was cancelled"
                 )
 
-            final_frame = index == len(frames) - 1
+            final_frame = frame_number == len(frames)
 
             if final_frame:
                 frame_command = command
@@ -68,7 +91,16 @@ class MotionExecutor:
                     pulses_us=pulses,
                 )
 
-            self.sink.send(frame_command)
+            try:
+                self.sink.send(frame_command)
+            except Exception as exc:
+                raise MotionExecutionError(
+                    command_name=command.name,
+                    frame_number=frame_number,
+                    frame_count=len(frames),
+                    pulses_us=pulses,
+                    cause=exc,
+                ) from exc
 
             self.last_pulses_us.update(pulses)
 
