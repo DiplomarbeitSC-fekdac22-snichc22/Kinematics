@@ -1,5 +1,3 @@
-from numpy.ma.core import ceil
-
 def generate_frames(
         start: dict[str, int],
         target: dict[str, int],
@@ -7,10 +5,10 @@ def generate_frames(
 ) -> list[dict[str, int]]:
     """Generate frames in which all moving joints finish together."""
     if max_step_us <= 0:
-        raise ValueError('max_step_us must be greater than 0')
+        raise ValueError("max_step_us must be greater than 0")
 
     if start.keys() != target.keys():
-        raise ValueError('start and target must have the same joints')
+        raise ValueError("start and target must have the same joints")
 
     largest_change = max(
         (
@@ -20,13 +18,13 @@ def generate_frames(
         default=0
     )
 
-    frame_count = max(1, ceil(largest_change / max_step_us))
+    frame_count = max(1, (largest_change + max_step_us - 1) // max_step_us)
 
     frames: list[dict[str, int]] = []
 
     for frame_number in range(1, frame_count + 1):
         if frame_number == frame_count:
-            frames.append(target)
+            frames.append(dict(target))
             continue
 
         frame: dict[str, int] = {}
