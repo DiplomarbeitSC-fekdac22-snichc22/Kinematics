@@ -167,6 +167,7 @@ class PickAndPlaceStateMachine(StateMachine):
         self.target: TargetPosition | None = None
         self.target_validation_ok = False
         self.last_error: str | None = None
+        self.last_failed_command: str | None = None
 
         self.current_gripper_center_mm: dict[str, float] | None = None
 
@@ -198,6 +199,7 @@ class PickAndPlaceStateMachine(StateMachine):
         self.target = target
         self.target_validation_ok = False
         self.last_error = None
+        self.last_failed_command = None
 
         self.current_gripper_center_mm = None
         self._active_state_name = None
@@ -442,18 +444,17 @@ class PickAndPlaceStateMachine(StateMachine):
             joint_angles
         )
 
-        self.current_gripper_center_mm = (
-            gripper_center
+        command = MotionCommand(
+            name=command_name,
+            pulses_us=pulses,
+            joint_angles_deg=joint_angles,
+            gripper_center_mm=gripper_center,
         )
 
-        self.sink.send(
-            MotionCommand(
-                name=command_name,
-                pulses_us=pulses,
-                joint_angles_deg=joint_angles,
-                gripper_center_mm=gripper_center,
+        if self._send_motion_command(command):
+            self.current_gripper_center_mm = (
+                gripper_center
             )
-        )
 
     def _send_named_pose(
             self,
@@ -489,19 +490,17 @@ class PickAndPlaceStateMachine(StateMachine):
         gripper_center = calculate_gripper_center(
             joint_angles
         )
-
-        self.current_gripper_center_mm = (
-            gripper_center
+        command = MotionCommand(
+            name=f"move_{name}",
+            pulses_us=pulses,
+            joint_angles_deg=joint_angles,
+            gripper_center_mm=gripper_center,
         )
 
-        self.sink.send(
-            MotionCommand(
-                name=f"move_{name}",
-                pulses_us=pulses,
-                joint_angles_deg=joint_angles,
-                gripper_center_mm=gripper_center,
+        if self._send_motion_command(command):
+            self.current_gripper_center_mm = (
+                gripper_center
             )
-        )
 
     def _send_gripper_command(
             self,
@@ -525,17 +524,31 @@ class PickAndPlaceStateMachine(StateMachine):
             gripper_commands[pulse_key]
         )
 
-        self.sink.send(
+        self._send_motion_command(
             MotionCommand(
                 name=command_name,
-                pulses_us={
-                    "J5_gripper": pulse_us
-                },
-                gripper_center_mm=(
-                    self.current_gripper_center_mm
-                ),
+                pulses_us={"J5_gripper": pulse_us},
+                gripper_center_mm=self.current_gripper_center_mm,
             )
         )
+
+    def _send_motion_command(
+            self,
+            command: MotionCommand,
+    ) -> bool:
+        """Send one command and fail the active sequence on sink errors."""
+        try:
+            self.sink.send(command)
+        except Exception as exc:
+            self.last_failed_command = command.name
+            self.last_error = (
+                f"Motion sink failed while executing {command.name!r}: "
+                f"{type(exc).__name__}: {exc}"
+            )
+            self.send("fail")
+            return False
+
+        return True
 
     def _joint_angles_to_pwm(
             self,

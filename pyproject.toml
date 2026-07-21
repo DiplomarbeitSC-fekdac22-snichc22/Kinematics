@@ -68,6 +68,7 @@ include = [
     "hardware*",
     "kinematics*",
     "motion*",
+    "robot_testing*",
     "simulator*",
     "state_machine*",
 ]
