@@ -13,8 +13,6 @@ Math model:
 - J4 cancels the shoulder-plus-forearm direction to preserve the configured approach angle.
 """
 
-from __future__ import annotations
-
 import sys
 from math import atan2, cos, degrees, hypot, radians, sin, sqrt
 from pathlib import Path
@@ -126,34 +124,37 @@ def calculate_angles(x_mm: float, y_mm: float, z_mm: float, config_dir: Path | s
         joint_name_4: theta4,
     }
 
-    reasons: list[str] = []
+    reachability_reasons: list[str] = []
     min_reach = abs(l1 - l2) + ik["minimum_reach_margin_mm"]
     max_reach = l1 + l2 - ik["maximum_reach_margin_mm"]
     if validation["check_reachability"] and not (min_reach <= d <= max_reach):
-        reasons.append(f"wrist distance {d:.1f} mm outside {min_reach:.1f}-{max_reach:.1f} mm")
+        reachability_reasons.append(f"wrist distance {d:.1f} mm outside {min_reach:.1f}-{max_reach:.1f} mm")
 
-    reasons.extend(
-        workspace_violation_reasons(
-            x_mm,
-            y_mm,
-            z_mm,
-            settings,
-        )
+    workspace_reasons = workspace_violation_reasons(
+        x_mm,
+        y_mm,
+        z_mm,
+        settings,
     )
 
+    orientation_reasons: list[str] = []
     if validation.get("check_side_view_orientation", False):
         if wrist_r < 0.0:
-            reasons.append("wrist target is not in front of the shoulder")
+            orientation_reasons.append(
+                "wrist target is not in front of the shoulder"
+            )
 
+    joint_limit_reasons: list[str] = []
     if validation["check_joint_limits"]:
         for joint_name, angle in angles.items():
             joint = servo["joints"][joint_name]
             if not (joint["theta_min_deg"] <= angle <= joint["theta_max_deg"]):
-                reasons.append(
+                joint_limit_reasons.append(
                     f"{joint_name} angle {angle:.1f} deg outside "
                     f"{joint['theta_min_deg']:.1f} - {joint['theta_max_deg']:.1f} deg"
                 )
 
+    pulse_limit_reasons: list[str] = []
     if validation["check_pulse_limits"]:
         for joint_name, angle in angles.items():
             joint = servo["joints"][joint_name]
@@ -163,11 +164,19 @@ def calculate_angles(x_mm: float, y_mm: float, z_mm: float, config_dir: Path | s
                     <= raw_pulse
                     <= joint["pulse_max_us"]
             ):
-                reasons.append(
+                pulse_limit_reasons.append(
                     f"{joint_name} requires {raw_pulse:.0f} us outside "
                     f"{joint['pulse_min_us']:.0f} - "
                     f"{joint['pulse_max_us']:.0f} us"
                 )
+
+    reasons = (
+        reachability_reasons
+        + workspace_reasons
+        + orientation_reasons
+        + joint_limit_reasons
+        + pulse_limit_reasons
+    )
 
     return {
         "angles_deg": {
@@ -184,6 +193,12 @@ def calculate_angles(x_mm: float, y_mm: float, z_mm: float, config_dir: Path | s
         },
         "reachable": not reasons,
         "reasons": reasons,
+        "reason_groups": {
+            "geometry": reachability_reasons + orientation_reasons,
+            "workspace": workspace_reasons,
+            "joint_limits": joint_limit_reasons,
+            "pulse_limits": pulse_limit_reasons,
+        },
     }
 
 
