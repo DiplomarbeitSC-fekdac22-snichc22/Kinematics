@@ -1,8 +1,3 @@
-#!/usr/bin/env python3
-"""Validate all robot TOML files and their cross-file consistency."""
-
-from __future__ import annotations
-
 import argparse
 import math
 import tomllib
@@ -14,7 +9,6 @@ from typing import Any
 from config.config_loader import CONFIG_FILES, DEFAULT_CONFIG_DIR
 from kinematics.forward_kinematics import calculate_gripper_center
 from kinematics.inverse_kinematics import calculate_angles
-
 
 REQUIRED_KINEMATIC_ROLES = {
     "theta1",
@@ -45,6 +39,7 @@ REQUIRED_SECTIONS = {
         "input_coordinates",
         "ik",
         "fk",
+        "target_offsets",
         "validation",
     },
     "pca9685": {
@@ -71,7 +66,6 @@ REQUIRED_SECTIONS = {
 @dataclass(frozen=True)
 class CheckResult:
     """One configuration-check result."""
-
     level: str
     message: str
 
@@ -80,9 +74,9 @@ class ConfigurationChecker:
     """Run syntax, structure, and cross-file configuration checks."""
 
     def __init__(
-        self,
-        config_dir: Path | str = DEFAULT_CONFIG_DIR,
-        warning_margin_deg: float = 5.0,
+            self,
+            config_dir: Path | str = DEFAULT_CONFIG_DIR,
+            warning_margin_deg: float = 5.0,
     ) -> None:
         self.config_dir = Path(config_dir)
         self.warning_margin_deg = warning_margin_deg
@@ -111,7 +105,6 @@ class ConfigurationChecker:
 
     def print_report(self) -> None:
         """Print all results and a final summary."""
-
         print("Robot configuration check")
         print()
 
@@ -135,9 +128,9 @@ class ConfigurationChecker:
         )
 
     def _report_error_group(
-        self,
-        errors: list[str],
-        success_message: str,
+            self,
+            errors: list[str],
+            success_message: str,
     ) -> None:
         if errors:
             for error in errors:
@@ -147,7 +140,6 @@ class ConfigurationChecker:
 
     def load_configs(self) -> None:
         """Discover and parse all TOML files."""
-
         if not self.config_dir.is_dir():
             self.fail(
                 "Configuration directory does not exist: "
@@ -217,9 +209,8 @@ class ConfigurationChecker:
 
     def check_required_sections(self) -> None:
         """Check required top-level sections in known files."""
-
         for config_name, required_sections in (
-            REQUIRED_SECTIONS.items()
+                REQUIRED_SECTIONS.items()
         ):
             config = self.configs.get(config_name)
 
@@ -243,9 +234,42 @@ class ConfigurationChecker:
                     "top-level sections"
                 )
 
+    def check_target_offsets(self) -> None:
+        """Check that every motion target offset is configured."""
+        settings = self.configs["kinematics_settings"]
+        offsets = settings.get("target_offsets")
+
+        if not isinstance(offsets, dict):
+            self.fail(
+                "kinematics_settings.toml is missing "
+                "target_offsets"
+            )
+            return
+
+        required_fields = {
+            "pre_grasp_y_offset_mm",
+            "lift_after_grip_y_offset_mm",
+            "approach_r_offset_mm",
+            "grasp_depth_offset_mm",
+        }
+        missing_fields = sorted(
+            required_fields - offsets.keys()
+        )
+
+        if missing_fields:
+            self.fail(
+                "kinematics_settings.toml is missing required "
+                "target_offsets field(s): "
+                f"{', '.join(missing_fields)}"
+            )
+        else:
+            self.ok(
+                "kinematics_settings.toml contains all required "
+                "target_offsets fields"
+            )
+
     def check_servo_configuration(self) -> None:
         """Validate servo limits, channels, roles, and pulses."""
-
         servo = self.configs["servo_calibration"]
         pca9685 = self.configs["pca9685"]
 
@@ -396,8 +420,8 @@ class ConfigurationChecker:
             )
 
             if (
-                not math.isfinite(us_per_degree)
-                or us_per_degree <= 0
+                    not math.isfinite(us_per_degree)
+                    or us_per_degree <= 0
             ):
                 conversion_errors.append(
                     f"{joint_name} us_per_degree must be a "
@@ -429,8 +453,8 @@ class ConfigurationChecker:
                 )
 
             if (
-                pulse_min < electrical_min_us
-                or pulse_max > electrical_max_us
+                    pulse_min < electrical_min_us
+                    or pulse_max > electrical_max_us
             ):
                 pulse_errors.append(
                     f"{joint_name} pulse range "
@@ -441,9 +465,9 @@ class ConfigurationChecker:
                 )
 
             for label, pulse in (
-                ("minimum", pulse_min),
-                ("center", pulse_center),
-                ("maximum", pulse_max),
+                    ("minimum", pulse_min),
+                    ("center", pulse_center),
+                    ("maximum", pulse_max),
             ):
                 count = round(
                     pulse
@@ -465,8 +489,8 @@ class ConfigurationChecker:
                     )
 
             for command_name in (
-                "pulse_open_us",
-                "pulse_closed_us",
+                    "pulse_open_us",
+                    "pulse_closed_us",
             ):
                 if command_name not in joint:
                     continue
@@ -483,7 +507,7 @@ class ConfigurationChecker:
                     )
 
             if bool(
-                joint["requires_physical_calibration"]
+                    joint["requires_physical_calibration"]
             ):
                 self.warn(
                     "Physical calibration is still required "
@@ -498,7 +522,7 @@ class ConfigurationChecker:
 
         if duplicate_channels:
             for channel, names in (
-                duplicate_channels.items()
+                    duplicate_channels.items()
             ):
                 self.fail(
                     f"PCA9685 channel {channel} is assigned "
@@ -650,8 +674,8 @@ class ConfigurationChecker:
                     continue
 
                 if (
-                    joint["kinematic_role"]
-                    == "gripper_command"
+                        joint["kinematic_role"]
+                        == "gripper_command"
                 ):
                     continue
 
@@ -664,8 +688,8 @@ class ConfigurationChecker:
                 )
 
                 if (
-                    nearest_distance
-                    <= self.warning_margin_deg
+                        nearest_distance
+                        <= self.warning_margin_deg
                 ):
                     if distance_to_min <= distance_to_max:
                         near_limits.append(
@@ -697,10 +721,10 @@ class ConfigurationChecker:
                 )
 
             if bool(
-                pose.get(
-                    "requires_measurement",
-                    False,
-                )
+                    pose.get(
+                        "requires_measurement",
+                        False,
+                    )
             ):
                 self.warn(
                     f"{display_name} pose still requires "
@@ -708,10 +732,10 @@ class ConfigurationChecker:
                 )
 
             if bool(
-                pose.get(
-                    "requires_verification",
-                    False,
-                )
+                    pose.get(
+                        "requires_verification",
+                        False,
+                    )
             ):
                 self.warn(
                     f"{display_name} pose still requires "
@@ -720,7 +744,6 @@ class ConfigurationChecker:
 
     def check_gripper_commands(self) -> None:
         """Validate named gripper pulse commands."""
-
         servo = self.configs["servo_calibration"]
         pose_config = self.configs["poses"]
 
@@ -731,8 +754,8 @@ class ConfigurationChecker:
             (joint_name, joint)
             for joint_name, joint in joints.items()
             if (
-                joint.get("kinematic_role")
-                == "gripper_command"
+                    joint.get("kinematic_role")
+                    == "gripper_command"
             )
         ]
 
@@ -755,9 +778,9 @@ class ConfigurationChecker:
         errors: list[str] = []
 
         for command_name in (
-            "open_pulse_us",
-            "closed_pulse_us",
-            "hold_pulse_us",
+                "open_pulse_us",
+                "closed_pulse_us",
+                "hold_pulse_us",
         ):
             if command_name not in commands:
                 errors.append(
@@ -785,10 +808,10 @@ class ConfigurationChecker:
         )
 
         if bool(
-            commands.get(
-                "requires_measurement",
-                False,
-            )
+                commands.get(
+                    "requires_measurement",
+                    False,
+                )
         ):
             self.warn(
                 "Named gripper commands still require "
@@ -797,7 +820,6 @@ class ConfigurationChecker:
 
     def check_physical_measurements(self) -> None:
         """Report measurements that are still required."""
-
         measurements = self.configs[
             "physical_measurements_required"
         ]["items"]
@@ -857,7 +879,6 @@ class ConfigurationChecker:
 
     def check_geometry_consistency(self) -> None:
         """Validate geometry references and dimensions."""
-
         geometry = self.configs["robot_geometry"]
         settings = self.configs["kinematics_settings"]
 
@@ -882,8 +903,8 @@ class ConfigurationChecker:
             )
 
             if (
-                not math.isfinite(value)
-                or value <= 0
+                    not math.isfinite(value)
+                    or value <= 0
             ):
                 self.fail(
                     f"Geometry value link_lengths_mm.{key} "
@@ -898,14 +919,14 @@ class ConfigurationChecker:
         referenced_keys: list[str] = []
 
         if bool(
-            model["use_gripper_offset"]
+                model["use_gripper_offset"]
         ):
             referenced_keys.append(
                 str(model["selected_Lg_key"])
             )
 
         if bool(
-            model["use_h0_from_robot_geometry"]
+                model["use_h0_from_robot_geometry"]
         ):
             referenced_keys.append(
                 str(model["selected_h0_key"])
@@ -925,8 +946,8 @@ class ConfigurationChecker:
             )
 
             if (
-                not math.isfinite(value)
-                or value <= 0
+                    not math.isfinite(value)
+                    or value <= 0
             ):
                 self.fail(
                     f"Geometry value link_lengths_mm.{key} "
@@ -947,9 +968,9 @@ class ConfigurationChecker:
         )
 
         if not math.isclose(
-            enclosure_height,
-            coordinate_height,
-            abs_tol=1e-9,
+                enclosure_height,
+                coordinate_height,
+                abs_tol=1e-9,
         ):
             self.fail(
                 "Physical enclosure height does not match "
@@ -997,7 +1018,6 @@ class ConfigurationChecker:
 
     def check_webots_consistency(self) -> None:
         """Compare Webots values with source configurations."""
-
         geometry = self.configs["robot_geometry"]
         settings = self.configs["kinematics_settings"]
         simulation = self.configs["webots_simulation"]
@@ -1070,13 +1090,13 @@ class ConfigurationChecker:
         }
 
         for label, (
-            simulation_value,
-            source_value,
-        ) in comparisons.items():
-            if not math.isclose(
                 simulation_value,
                 source_value,
-                abs_tol=1e-6,
+        ) in comparisons.items():
+            if not math.isclose(
+                    simulation_value,
+                    source_value,
+                    abs_tol=1e-6,
             ):
                 self.fail(
                     f"{label} is inconsistent: simulation "
@@ -1105,13 +1125,13 @@ class ConfigurationChecker:
             ]
         )
         expected_shoulder_height = (
-            top_reference - shoulder_offset
+                top_reference - shoulder_offset
         )
 
         if not math.isclose(
-            configured_shoulder_height,
-            expected_shoulder_height,
-            abs_tol=1e-6,
+                configured_shoulder_height,
+                expected_shoulder_height,
+                abs_tol=1e-6,
         ):
             self.fail(
                 "Webots shoulder height is inconsistent: "
@@ -1132,8 +1152,8 @@ class ConfigurationChecker:
             *(
                 str(name)
                 for name in settings["model"][
-                    "planar_joints"
-                ]
+                "planar_joints"
+            ]
             ),
         }
         simulated_arm_joints = set(
@@ -1204,9 +1224,9 @@ class ConfigurationChecker:
         )
 
         if not (
-            closed_position
-            < minimum_functional_open
-            <= open_position
+                closed_position
+                < minimum_functional_open
+                <= open_position
         ):
             self.fail(
                 "Webots functional gripper opening must lie "
@@ -1251,8 +1271,8 @@ class ConfigurationChecker:
 
         for field_name, value in positive_fields.items():
             if (
-                not math.isfinite(value)
-                or value <= 0
+                    not math.isfinite(value)
+                    or value <= 0
             ):
                 webots_value_errors.append(
                     f"{field_name} must be positive, "
@@ -1266,11 +1286,11 @@ class ConfigurationChecker:
         )
 
     def _report_position_error(
-        self,
-        label: str,
-        error_mm: float,
-        warning_threshold_mm: float,
-        failure_threshold_mm: float,
+            self,
+            label: str,
+            error_mm: float,
+            warning_threshold_mm: float,
+            failure_threshold_mm: float,
     ) -> None:
         if not math.isfinite(error_mm):
             self.fail(
@@ -1295,7 +1315,6 @@ class ConfigurationChecker:
 
     def check_cartesian_targets(self) -> None:
         """Run IK and FK validation for named targets."""
-
         pose_config = self.configs["poses"]
         servo = self.configs["servo_calibration"]
         settings = self.configs["kinematics_settings"]
@@ -1346,9 +1365,9 @@ class ConfigurationChecker:
                     target["z_mm"]
                 )
             except (
-                KeyError,
-                TypeError,
-                ValueError,
+                    KeyError,
+                    TypeError,
+                    ValueError,
             ) as error:
                 self.fail(
                     f"{display_name} target has invalid "
@@ -1442,9 +1461,9 @@ class ConfigurationChecker:
                 joint_name
                 for joint_name, joint in joints.items()
                 if (
-                    joint["kinematic_role"]
-                    in IK_RESULT_KEYS
-                    and joint_name not in stored_pose
+                        joint["kinematic_role"]
+                        in IK_RESULT_KEYS
+                        and joint_name not in stored_pose
                 )
             ]
 
@@ -1462,8 +1481,8 @@ class ConfigurationChecker:
                 )
                 for joint_name, joint in joints.items()
                 if (
-                    joint["kinematic_role"]
-                    in IK_RESULT_KEYS
+                        joint["kinematic_role"]
+                        in IK_RESULT_KEYS
                 )
             }
 
@@ -1497,7 +1516,6 @@ class ConfigurationChecker:
 
     def run(self) -> bool:
         """Run every available configuration check."""
-
         self.load_configs()
 
         checks: tuple[
@@ -1507,6 +1525,10 @@ class ConfigurationChecker:
             (
                 "required-section validation",
                 self.check_required_sections,
+            ),
+            (
+                "target-offset validation",
+                self.check_target_offsets,
             ),
             (
                 "servo validation",
@@ -1542,12 +1564,12 @@ class ConfigurationChecker:
             try:
                 check()
             except (
-                KeyError,
-                TypeError,
-                ValueError,
-                ZeroDivisionError,
-                OSError,
-                tomllib.TOMLDecodeError,
+                    KeyError,
+                    TypeError,
+                    ValueError,
+                    ZeroDivisionError,
+                    OSError,
+                    tomllib.TOMLDecodeError,
             ) as error:
                 self.fail(
                     f"{label} could not be completed: "
@@ -1559,7 +1581,6 @@ class ConfigurationChecker:
 
 def main() -> int:
     """Command-line entry point."""
-
     parser = argparse.ArgumentParser(
         description=(
             "Validate the robot TOML configuration."
