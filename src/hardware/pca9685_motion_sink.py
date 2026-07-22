@@ -54,7 +54,6 @@ class Pca9685WriteError(RuntimeError):
 
 class Pca9685DisableError(RuntimeError):
     """Raised after all channels were attempted but some could not be disabled."""
-
     def __init__(self, failed_channels: tuple[int, ...]) -> None:
         self.failed_channels = failed_channels
         super().__init__(
@@ -72,6 +71,7 @@ class _JointOutputs:
 
 class Pca9685MotionSink:
     """Send servo pulse commands to the PCA9685 board."""
+    requires_hardware_safe_prevalidation = True
 
     def __init__(
             self,
