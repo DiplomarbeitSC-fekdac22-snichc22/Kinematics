@@ -3,7 +3,7 @@
 # Coordinate convention: X is depth/forward, Z is lateral/right, and Y is distance downward from the top reference.
 
 # Version of this configuration file format.
-schema_version = "1.4"
+schema_version = "1.5"
 # Unit used for all length/distance values in this file.
 units_length = "mm"
 # Unit used for all angular values in this file.
@@ -107,7 +107,11 @@ pre_grasp_y_offset_mm = 40.0
 # Vertical lift after closing the gripper.
 lift_after_grip_y_offset_mm = 50.0
 # Horizontal/radial offset used while approaching a target.
-approach_r_offset_mm = 20.0
+approach_r_offset_mm = 80.0
+
+# Distance between the detected object centre and the desired gripper-centre
+# position along the radial approach direction.
+grasp_depth_offset_mm = 0.0
 
 [validation]
 # Check commanded joint angles against configured joint limits.
