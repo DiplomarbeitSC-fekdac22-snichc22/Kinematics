@@ -19,7 +19,6 @@ from pathlib import Path
 from typing import Any
 
 from kinematics.angle_to_pwm import (
-    angle_to_pwm,
     angle_to_pwm_unclamped,
     clamp_angle,
 )
@@ -186,10 +185,10 @@ def calculate_angles(x_mm: float, y_mm: float, z_mm: float, config_dir: Path | s
             "wrist": theta4,
         },
         "pwm_us": {
-            "J1": angle_to_pwm(theta1, joint_1),
-            "J2": angle_to_pwm(theta2, joint_2),
-            "J3": angle_to_pwm(theta3, joint_3),
-            "J4": angle_to_pwm(theta4, joint_4),
+            "J1": round(angle_to_pwm_unclamped(theta1, joint_1)),
+            "J2": round(angle_to_pwm_unclamped(theta2, joint_2)),
+            "J3": round(angle_to_pwm_unclamped(theta3, joint_3)),
+            "J4": round(angle_to_pwm_unclamped(theta4, joint_4)),
         },
         "reachable": not reasons,
         "reasons": reasons,

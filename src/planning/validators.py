@@ -3,7 +3,11 @@ from math import isfinite
 from numbers import Real
 from typing import Any, Mapping
 
-from kinematics.angle_to_pwm import angle_to_pwm_unclamped
+from kinematics.angle_to_pwm import (
+    AngleOutsideCalibrationError,
+    PulseLimitError,
+    angle_to_pwm,
+)
 from kinematics.workspace_checker import workspace_violation_reasons
 from planning.models import TargetPose
 
@@ -77,7 +81,7 @@ def convert_joint_angles_to_pwm(
     joint_angles_deg: Mapping[str, float],
     servo_calibration: dict[str, Any],
 ) -> tuple[dict[str, int], tuple[str, ...]]:
-    """Convert without clamping and report configured pulse violations."""
+    """Strictly convert command angles and report calibration violations."""
     pulses: dict[str, int] = {}
     reasons: list[str] = []
     joints = servo_calibration["joints"]
@@ -88,18 +92,18 @@ def convert_joint_angles_to_pwm(
             continue
 
         joint = joints[joint_name]
-        raw_pulse = float(angle_to_pwm_unclamped(float(angle), joint))
-        if not isfinite(raw_pulse):
-            reasons.append(f"{joint_name} generated a non-finite pulse")
-            continue
-
-        pulse_us = round(raw_pulse)
-        minimum = int(joint["pulse_min_us"])
-        maximum = int(joint["pulse_max_us"])
-        if not minimum <= pulse_us <= maximum:
+        try:
+            pulse_us = angle_to_pwm(float(angle), joint)
+        except AngleOutsideCalibrationError as exc:
             reasons.append(
-                f"{joint_name} requires {pulse_us} us outside "
-                f"{minimum} - {maximum} us"
+                f"{joint_name} angle {exc.angle_deg:.1f} deg outside "
+                f"{exc.minimum_deg:.1f} - {exc.maximum_deg:.1f} deg"
+            )
+            continue
+        except PulseLimitError as exc:
+            reasons.append(
+                f"{joint_name} requires {exc.pulse_us} us outside "
+                f"{exc.minimum_us} - {exc.maximum_us} us"
             )
             continue
 
