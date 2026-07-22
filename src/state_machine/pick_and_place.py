@@ -1,32 +1,20 @@
 import json
-from dataclasses import dataclass
-from math import hypot
 from pathlib import Path
 from time import perf_counter
 from typing import Protocol
 
-from statemachine import StateMachine, State
+from statemachine import State, StateMachine
 
-from config.config_loader import load_config
-from kinematics.angle_to_pwm import angle_to_pwm
-from kinematics.forward_kinematics import calculate_gripper_center
-from kinematics.inverse_kinematics import calculate_angles
-from kinematics.workspace_checker import are_joint_angles_inside_limits
+from planning.models import (
+    MotionCommand,
+    MotionPlan,
+    PlanningFailure,
+    TargetPose,
+    ValidationStatus,
+)
 
-
-@dataclass(frozen=True)
-class TargetPosition:
-    x_mm: float
-    y_mm: float
-    z_mm: float
-
-
-@dataclass(frozen=True)
-class MotionCommand:
-    name: str
-    pulses_us: dict[str, int]
-    gripper_center_mm: dict[str, float] | None = None
-    joint_angles_deg: dict[str, float] | None = None
+# Backwards-compatible name used by existing API consumers.
+TargetPosition = TargetPose
 
 
 class MotionCommandSink(Protocol):
@@ -35,12 +23,7 @@ class MotionCommandSink(Protocol):
 
 
 class DryRunMotionSink:
-    """Intentional console-only sink.
-
-    This sink prints generated commands but never communicates with
-    physical robot hardware.
-    """
-
+    """Intentional console-only sink that never accesses real hardware."""
     def send(self, command: MotionCommand) -> None:
         if command.gripper_center_mm is None:
             coordinates = "unknown"
@@ -60,12 +43,11 @@ class DryRunMotionSink:
 
 
 class JsonRecordingMotionSink:
-    """Records commands and optionally forwards them to another sink."""
-
+    """Record commands and optionally forward them to another sink."""
     def __init__(
-            self,
-            output_path: str | Path,
-            wrapped_sink: MotionCommandSink | None = None,
+        self,
+        output_path: str | Path,
+        wrapped_sink: MotionCommandSink | None = None,
     ) -> None:
         self.output_path = Path(output_path)
         self.wrapped_sink = wrapped_sink
@@ -93,27 +75,17 @@ class JsonRecordingMotionSink:
         )
 
     def export(self) -> Path:
-        self.output_path.parent.mkdir(
-            parents=True,
-            exist_ok=True,
-        )
-
+        self.output_path.parent.mkdir(parents=True, exist_ok=True)
         self.output_path.write_text(
-            json.dumps(
-                self.commands,
-                indent=2,
-                ensure_ascii=False,
-            )
-            + "\n",
+            json.dumps(self.commands, indent=2, ensure_ascii=False) + "\n",
             encoding="utf-8",
         )
-
         return self.output_path
 
 
 class PickAndPlaceStateMachine(StateMachine):
     idle = State("idle", initial=True)
-    validating_target = State("validating_target")
+    validating_plan = State("validating_plan")
     moving_ready = State("moving_ready")
     moving_in_front_of_object = State("moving_in_front_of_object")
     advancing_towards_object = State("advancing_towards_object")
@@ -126,417 +98,192 @@ class PickAndPlaceStateMachine(StateMachine):
     done = State("done", final=True)
     failed = State("failed", final=True)
 
-    begin = idle.to(validating_target)
+    begin = idle.to(validating_plan)
 
     advance = (
-            validating_target.to(
-                moving_ready,
-                cond="target_is_valid",
-            )
-            | validating_target.to(failed)
-            | moving_ready.to(moving_in_front_of_object)
-            | moving_in_front_of_object.to(advancing_towards_object)
-            | advancing_towards_object.to(closing_gripper)
-            | closing_gripper.to(lifting_object)
-            | lifting_object.to(retracting_from_shelf)
-            | retracting_from_shelf.to(moving_to_deposit)
-            | moving_to_deposit.to(opening_gripper)
-            | opening_gripper.to(returning_home)
-            | returning_home.to(done)
+        validating_plan.to(moving_ready, cond="plan_is_valid")
+        | validating_plan.to(failed)
+        | moving_ready.to(moving_in_front_of_object)
+        | moving_in_front_of_object.to(advancing_towards_object)
+        | advancing_towards_object.to(closing_gripper)
+        | closing_gripper.to(lifting_object)
+        | lifting_object.to(retracting_from_shelf)
+        | retracting_from_shelf.to(moving_to_deposit)
+        | moving_to_deposit.to(opening_gripper)
+        | opening_gripper.to(returning_home)
+        | returning_home.to(done)
     )
 
     fail = (
-            validating_target.to(failed)
-            | moving_ready.to(failed)
-            | moving_in_front_of_object.to(failed)
-            | advancing_towards_object.to(failed)
-            | closing_gripper.to(failed)
-            | lifting_object.to(failed)
-            | retracting_from_shelf.to(failed)
-            | moving_to_deposit.to(failed)
-            | opening_gripper.to(failed)
-            | returning_home.to(failed)
+        validating_plan.to(failed)
+        | moving_ready.to(failed)
+        | moving_in_front_of_object.to(failed)
+        | advancing_towards_object.to(failed)
+        | closing_gripper.to(failed)
+        | lifting_object.to(failed)
+        | retracting_from_shelf.to(failed)
+        | moving_to_deposit.to(failed)
+        | opening_gripper.to(failed)
+        | returning_home.to(failed)
     )
 
     def __init__(
-            self,
-            sink: MotionCommandSink | None = None,
+        self,
+        sink: MotionCommandSink | None = None,
+        *,
+        plan: MotionPlan,
     ) -> None:
         self.sink = sink or DryRunMotionSink()
-
-        self.target: TargetPosition | None = None
-        self.target_validation_ok = False
+        self.plan = plan
+        self.plan_validation_ok = False
         self.last_error: str | None = None
         self.last_failed_command: str | None = None
-
         self.current_gripper_center_mm: dict[str, float] | None = None
-
         self._active_state_name: str | None = None
         self._state_started_at: float | None = None
-
-        self.kinematics_setting = load_config(
-            "kinematics_settings.toml"
-        )
-        self.servo_calibration = load_config(
-            "servo_calibration.toml"
-        )
-        self.poses_config = load_config(
-            "poses.toml"
-        )
-
         super().__init__()
 
-    def start_pick_and_place(
-            self,
-            target: TargetPosition,
-    ) -> None:
+    def start_pick_and_place(self) -> None:
         if not self.idle.is_active:
             raise RuntimeError(
                 "Cannot start pick and place before idle "
                 f"(current: {self.configuration})"
             )
 
-        self.target = target
-        self.target_validation_ok = False
+        target = self.plan.target
+        self.plan_validation_ok = False
         self.last_error = None
         self.last_failed_command = None
-
         self.current_gripper_center_mm = None
         self._active_state_name = None
         self._state_started_at = None
 
         print(
-            "[ROBOT] Target received: "
+            "[ROBOT] Accepted plan target: "
             f"x={target.x_mm:.1f} mm, "
             f"y={target.y_mm:.1f} mm, "
             f"z={target.z_mm:.1f} mm"
         )
-
         self.send("begin")
 
     def run_until_finished(self) -> bool:
-        while (
-                not self.done.is_active
-                and not self.failed.is_active
-        ):
+        while not self.done.is_active and not self.failed.is_active:
             self.send("advance")
-
         return self.done.is_active
 
-    def target_is_valid(self) -> bool:
-        return self.target_validation_ok
+    def plan_is_valid(self) -> bool:
+        return self.plan_validation_ok
 
-    def on_enter_validating_target(self) -> None:
-        self._announce_state(
-            "validating_target",
-            "Validating target",
+    def on_enter_validating_plan(self) -> None:
+        self._announce_state("validating_plan", "Checking accepted motion plan")
+        expected = (
+            "ready",
+            "pre_grasp",
+            "grasp",
+            "close_gripper",
+            "lift",
+            "retract",
+            "deposit",
+            "open_gripper",
+            "home",
         )
-
-        target = self._require_target()
-
-        result = calculate_angles(
-            target.x_mm,
-            target.y_mm,
-            target.z_mm,
+        actual = tuple(waypoint.name for waypoint in self.plan.waypoints)
+        statuses_valid = all(
+            waypoint.validation_status is ValidationStatus.VALID
+            for waypoint in self.plan.waypoints
         )
+        self.plan_validation_ok = actual == expected and statuses_valid
 
-        self.target_validation_ok = bool(
-            result["reachable"]
-        )
-
-        if self.target_validation_ok:
-            print("[ROBOT] Target accepted")
+        if self.plan_validation_ok:
+            print("[ROBOT] Complete motion plan accepted")
         else:
-            self.last_error = "; ".join(
-                result["reasons"]
-            )
-
-            print(
-                f"[ROBOT] Target rejected: {self.last_error}"
+            self.last_error = (
+                "State machine received an incomplete or unvalidated plan: "
+                f"expected {expected}, got {actual}"
             )
 
     def on_enter_moving_ready(self) -> None:
-        self._announce_state(
-            "moving_ready",
-            "Moving to ready position",
-        )
-
-        self._send_named_pose("ready")
+        self._enter_and_execute("moving_ready", "Moving to ready position", "ready")
 
     def on_enter_moving_in_front_of_object(self) -> None:
-        self._announce_state(
+        self._enter_and_execute(
             "moving_in_front_of_object",
             "Moving in front of object",
-        )
-
-        self._send_target_pose(
-            "move_in_front_of_object",
-            self._target_in_front_of_object(),
+            "pre_grasp",
         )
 
     def on_enter_advancing_towards_object(self) -> None:
-        self._announce_state(
+        self._enter_and_execute(
             "advancing_towards_object",
             "Advancing towards object",
-        )
-
-        self._send_target_pose(
-            "advance_towards_object",
-            self._target_at_grasp_depth(),
+            "grasp",
         )
 
     def on_enter_closing_gripper(self) -> None:
-        self._announce_state(
+        self._enter_and_execute(
             "closing_gripper",
             "Closing gripper",
-        )
-
-        self._send_gripper_command(
             "close_gripper",
-            "closed_pulse_us",
         )
 
     def on_enter_lifting_object(self) -> None:
-        self._announce_state(
-            "lifting_object",
-            "Lifting object",
-        )
-
-        self._send_target_pose(
-            "lift_object",
-            self._target_lifted_from_object(),
-        )
+        self._enter_and_execute("lifting_object", "Lifting object", "lift")
 
     def on_enter_retracting_from_shelf(self) -> None:
-        self._announce_state(
+        self._enter_and_execute(
             "retracting_from_shelf",
             "Retracting from shelf before changing height",
-        )
-
-        self._send_target_pose(
-            "retract_from_shelf",
-            self._target_retracted_from_shelf(),
+            "retract",
         )
 
     def on_enter_moving_to_deposit(self) -> None:
-        self._announce_state(
+        self._enter_and_execute(
             "moving_to_deposit",
             "Moving to deposit position",
-        )
-
-        drop_off = self.poses_config[
-            "cartesian_targets"
-        ]["drop_off"]
-
-        self._send_target_pose(
-            "move_deposit",
-            TargetPosition(
-                x_mm=float(drop_off["x_mm"]),
-                y_mm=float(drop_off["y_mm"]),
-                z_mm=float(drop_off["z_mm"]),
-            ),
+            "deposit",
         )
 
     def on_enter_opening_gripper(self) -> None:
-        self._announce_state(
+        self._enter_and_execute(
             "opening_gripper",
             "Opening gripper",
-        )
-
-        self._send_gripper_command(
             "open_gripper",
-            "open_pulse_us",
         )
 
     def on_enter_returning_home(self) -> None:
-        self._announce_state(
-            "returning_home",
-            "Returning home",
-        )
-
-        self._send_named_pose("home")
+        self._enter_and_execute("returning_home", "Returning home", "home")
 
     def on_enter_done(self) -> None:
         self._finish_state_timer()
-
-        print(
-            "[ROBOT] Pick-and-place sequence completed"
-        )
+        print("[ROBOT] Pick-and-place sequence completed")
 
     def on_enter_failed(self) -> None:
         self._finish_state_timer()
-
         if self.last_error is None:
-            self.last_error = (
-                "State machine failed without a "
-                "specific error message"
-            )
+            self.last_error = "State machine failed without a specific error message"
+        print(f"[ROBOT] Pick-and-place sequence failed: {self.last_error}")
 
-        print(
-            "[ROBOT] Pick-and-place sequence failed: "
-            f"{self.last_error}"
-        )
-
-    def _announce_state(
-            self,
-            state_name: str,
-            message: str,
+    def _enter_and_execute(
+        self,
+        state_name: str,
+        message: str,
+        waypoint_name: str,
     ) -> None:
-        self._finish_state_timer()
+        self._announce_state(state_name, message)
+        self._send_planned_motion(waypoint_name)
 
-        self._active_state_name = state_name
-        self._state_started_at = perf_counter()
-
-        print(f"[ROBOT] {message}")
-
-    def _finish_state_timer(self) -> None:
-        if (
-                self._active_state_name is None
-                or self._state_started_at is None
-        ):
-            return
-
-        elapsed_s = (
-                perf_counter() - self._state_started_at
-        )
-
-        print(
-            f"[ROBOT] State {self._active_state_name} "
-            f"finished in {elapsed_s:.3f} s"
-        )
-
-        self._active_state_name = None
-        self._state_started_at = None
-
-    def _send_target_pose(
-            self,
-            command_name: str,
-            target: TargetPosition,
-    ) -> None:
-        result = calculate_angles(
-            target.x_mm,
-            target.y_mm,
-            target.z_mm,
-        )
-
-        if not result["reachable"]:
-            self.last_error = "; ".join(
-                result["reasons"]
-            )
-
+    def _send_planned_motion(self, waypoint_name: str) -> None:
+        try:
+            command = self.plan.motion_for(waypoint_name).command
+        except KeyError as exc:
+            self.last_error = str(exc)
             self.send("fail")
             return
-
-        angles = result["angles_deg"]
-
-        joint_angles = {
-            "J1_base": float(angles["base"]),
-            "J2_shoulder": float(angles["shoulder"]),
-            "J3_elbow": float(angles["elbow"]),
-            "J4_wrist": float(angles["wrist"]),
-        }
-
-        pulses = self._joint_angles_to_pwm(
-            joint_angles
-        )
-
-        gripper_center = calculate_gripper_center(
-            joint_angles
-        )
-
-        command = MotionCommand(
-            name=command_name,
-            pulses_us=pulses,
-            joint_angles_deg=joint_angles,
-            gripper_center_mm=gripper_center,
-        )
 
         if self._send_motion_command(command):
-            self.current_gripper_center_mm = (
-                gripper_center
-            )
+            self.current_gripper_center_mm = command.gripper_center_mm
 
-    def _send_named_pose(
-            self,
-            name: str,
-    ) -> None:
-        joint_angles = self._get_named_pose_angles(
-            name
-        )
-
-        if not are_joint_angles_inside_limits(
-                joint_angles
-        ):
-            self.last_error = (
-                f"Named pose {name} not inside "
-                "configured limits!"
-            )
-
-            self.send("fail")
-            return
-
-        pulses = self._joint_angles_to_pwm(
-            joint_angles
-        )
-
-        # Named ready/home poses describe arm angles. J5_gripper=0 is only a
-        # placeholder and previously converted to the servo-neutral 1500 us,
-        # which is neither the configured open nor closed state. Keep the
-        # gripper explicitly open while moving to ready or home.
-        pulses["J5_gripper"] = int(
-            self.poses_config["gripper_commands"]["open_pulse_us"]
-        )
-
-        gripper_center = calculate_gripper_center(
-            joint_angles
-        )
-        command = MotionCommand(
-            name=f"move_{name}",
-            pulses_us=pulses,
-            joint_angles_deg=joint_angles,
-            gripper_center_mm=gripper_center,
-        )
-
-        if self._send_motion_command(command):
-            self.current_gripper_center_mm = (
-                gripper_center
-            )
-
-    def _send_gripper_command(
-            self,
-            command_name: str,
-            pulse_key: str,
-    ) -> None:
-        gripper_commands = self.poses_config[
-            "gripper_commands"
-        ]
-
-        if pulse_key not in gripper_commands:
-            self.last_error = (
-                f"Unknown gripper pulse key: "
-                f"{pulse_key}"
-            )
-
-            self.send("fail")
-            return
-
-        pulse_us = int(
-            gripper_commands[pulse_key]
-        )
-
-        self._send_motion_command(
-            MotionCommand(
-                name=command_name,
-                pulses_us={"J5_gripper": pulse_us},
-                gripper_center_mm=self.current_gripper_center_mm,
-            )
-        )
-
-    def _send_motion_command(
-            self,
-            command: MotionCommand,
-    ) -> bool:
-        """Send one command and fail the active sequence on sink errors."""
+    def _send_motion_command(self, command: MotionCommand) -> bool:
         try:
             self.sink.send(command)
         except Exception as exc:
@@ -547,194 +294,51 @@ class PickAndPlaceStateMachine(StateMachine):
             )
             self.send("fail")
             return False
-
         return True
 
-    def _joint_angles_to_pwm(
-            self,
-            joint_angles: dict[str, float],
-    ) -> dict[str, int]:
-        joints = self.servo_calibration["joints"]
-        pulses: dict[str, int] = {}
+    def _announce_state(self, state_name: str, message: str) -> None:
+        self._finish_state_timer()
+        self._active_state_name = state_name
+        self._state_started_at = perf_counter()
+        print(f"[ROBOT] {message}")
 
-        for name, angle in joint_angles.items():
-            if name not in joints:
-                raise KeyError(
-                    f"Unknown joint name: {name}"
-                )
-
-            pulses[name] = angle_to_pwm(
-                angle,
-                joints[name],
-            )
-
-        return pulses
-
-    def _get_named_pose_angles(
-            self,
-            name: str,
-    ) -> dict[str, float]:
-        poses = self.poses_config["poses"]
-
-        if name not in poses:
-            raise KeyError(
-                f"Unknown pose: {name}"
-            )
-
-        pose = poses[name]
-
-        return {
-            key: float(value)
-            for key, value in pose.items()
-            if key.startswith("J")
-        }
-
-    def _target_in_front_of_object(
-            self,
-    ) -> TargetPosition:
-        target = self._require_target()
-        offsets = self.kinematics_setting["target_offsets"]
-        return self._target_with_radial_retraction(
-            target,
-            y_mm=(
-                target.y_mm
-                - float(offsets["pre_grasp_y_offset_mm"])
-            ),
-            retraction_mm=(
-                    float(offsets["grasp_depth_offset_mm"])
-                    + float(offsets["approach_r_offset_mm"])
-            ),
+    def _finish_state_timer(self) -> None:
+        if self._active_state_name is None or self._state_started_at is None:
+            return
+        elapsed_s = perf_counter() - self._state_started_at
+        print(
+            f"[ROBOT] State {self._active_state_name} "
+            f"finished in {elapsed_s:.3f} s"
         )
-
-    def _target_retracted_from_shelf(
-            self,
-    ) -> TargetPosition:
-        target = self._require_target()
-        offsets = self.kinematics_setting["target_offsets"]
-        return self._target_with_radial_retraction(
-            target,
-            y_mm=(
-                target.y_mm
-                - float(offsets["lift_after_grip_y_offset_mm"])
-            ),
-            retraction_mm=(
-                    float(offsets["grasp_depth_offset_mm"])
-                    + float(offsets["approach_r_offset_mm"])
-            ),
-        )
-
-    def _target_with_radial_retraction(
-            self,
-            target: TargetPosition,
-            *,
-            y_mm: float,
-            retraction_mm: float,
-    ) -> TargetPosition:
-        base_x, _, base_z = (
-            self.kinematics_setting[
-                "input_coordinates"
-            ][
-                "base_rotation_axis_at_"
-                "mounting_plate_mm"
-            ]
-        )
-
-        delta_x = target.x_mm - base_x
-        delta_z = target.z_mm - base_z
-
-        radial_distance = hypot(
-            delta_x,
-            delta_z,
-        )
-
-        if retraction_mm < 0.0:
-            raise ValueError("Radial retraction cannot be negative")
-
-        if radial_distance <= retraction_mm:
-            raise ValueError(
-                "Target is too close to apply the "
-                "configured radial retraction"
-            )
-
-        scale = (
-                        radial_distance - retraction_mm
-                ) / radial_distance
-
-        return TargetPosition(
-            x_mm=base_x + delta_x * scale,
-            y_mm=y_mm,
-            z_mm=base_z + delta_z * scale,
-        )
-
-    def _target_lifted_from_object(
-            self,
-    ) -> TargetPosition:
-        target = self._require_target()
-        offsets = self.kinematics_setting["target_offsets"]
-        return self._target_with_radial_retraction(
-            target,
-            y_mm=(
-                target.y_mm
-                - float(offsets["lift_after_grip_y_offset_mm"])
-            ),
-            retraction_mm=float(offsets["grasp_depth_offset_mm"]),
-        )
-
-    def _target_at_grasp_depth(self) -> TargetPosition:
-        """Align the jaw contact centre with the object centre."""
-        target = self._require_target()
-        return self._target_with_radial_retraction(
-            target,
-            y_mm=target.y_mm,
-            retraction_mm=float(
-                self.kinematics_setting[
-                    "target_offsets"
-                ]["grasp_depth_offset_mm"]
-            ),
-        )
-
-    def _require_target(self) -> TargetPosition:
-        if self.target is None:
-            raise RuntimeError(
-                "No target position has been set"
-            )
-
-        return self.target
+        self._active_state_name = None
+        self._state_started_at = None
 
 
 if __name__ == "__main__":
+    from planning.pick_and_place_planner import PickAndPlacePlanner
+
+    target = TargetPose(x_mm=230.0, y_mm=180.0, z_mm=60.0)
+    planner = PickAndPlacePlanner(enforce_hardware_safe_limits=False)
+    plan_result = planner.plan(target)
+
+    if isinstance(plan_result, PlanningFailure):
+        print(f"[ROBOT] Planning failed: {plan_result.message}")
+        raise SystemExit(1)
+
+    for warning in plan_result.warnings:
+        print(f"[ROBOT] {warning}")
+
     recorder = JsonRecordingMotionSink(
         output_path="pick_and_place_commands.json",
         wrapped_sink=DryRunMotionSink(),
     )
-
-    machine = PickAndPlaceStateMachine(
-        sink=recorder
-    )
-
-    machine.start_pick_and_place(
-        TargetPosition(
-            x_mm=230.0,
-            y_mm=180.0,
-            z_mm=60.0,
-        )
-    )
-
+    machine = PickAndPlaceStateMachine(sink=recorder, plan=plan_result)
+    machine.start_pick_and_place()
     success = machine.run_until_finished()
     output_path = recorder.export()
 
-    print(
-        f"[ROBOT] Final state: "
-        f"{machine.configuration}"
-    )
+    print(f"[ROBOT] Final state: {machine.current_state.id}")
     print(f"[ROBOT] Success: {success}")
-    print(
-        f"[ROBOT] JSON written to "
-        f"{output_path.resolve()}"
-    )
-
+    print(f"[ROBOT] JSON written to {output_path.resolve()}")
     if machine.last_error is not None:
-        print(
-            f"[ROBOT] Error: "
-            f"{machine.last_error}"
-        )
+        print(f"[ROBOT] Error: {machine.last_error}")
