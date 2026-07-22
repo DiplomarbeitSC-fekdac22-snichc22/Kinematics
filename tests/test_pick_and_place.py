@@ -6,7 +6,11 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from state_machine.pick_and_place import MotionCommand, PickAndPlaceStateMachine, TargetPosition
+from api import RobotController
+from config.config_loader import load_config
+from kinematics.forward_kinematics import calculate_gripper_center
+from planning.models import MotionCommand, TargetPose
+from planning.waypoint_generator import WaypointGenerator
 
 
 class RecordingSink:
@@ -20,13 +24,13 @@ class RecordingSink:
 class PickAndPlaceRegressionTests(unittest.TestCase):
     def test_current_target_completes_dry_run_with_correct_joint_mapping(self) -> None:
         sink = RecordingSink()
-        machine = PickAndPlaceStateMachine(sink)
+        controller = RobotController(sink)
 
-        machine.start_pick_and_place(TargetPosition(230.0, 180.0, 60.0))
-        success = machine.run_until_finished()
+        success = controller.run_pick_and_place(230.0, 180.0, 60.0)
 
-        self.assertTrue(success, machine.last_error)
-        self.assertIsNone(machine.last_error)
+        self.assertTrue(success)
+        self.assertIsNotNone(controller.machine)
+        self.assertIsNone(controller.machine.last_error)
         self.assertEqual(
             [command.name for command in sink.commands],
             [
@@ -41,7 +45,11 @@ class PickAndPlaceRegressionTests(unittest.TestCase):
                 "move_home",
             ],
         )
-        advance = next(command for command in sink.commands if command.name == "advance_towards_object")
+        advance = next(
+            command
+            for command in sink.commands
+            if command.name == "advance_towards_object"
+        )
         self.assertEqual(
             advance.pulses_us,
             {
@@ -53,9 +61,13 @@ class PickAndPlaceRegressionTests(unittest.TestCase):
         )
 
         ready = next(command for command in sink.commands if command.name == "move_ready")
-        self.assertAlmostEqual(ready.gripper_center_mm["x_mm"], 200.0, places=7)
-        self.assertAlmostEqual(ready.gripper_center_mm["y_mm"], 140.0, places=7)
-        self.assertAlmostEqual(ready.gripper_center_mm["z_mm"], 0.0, places=7)
+        ready_angles = {
+            key: float(value)
+            for key, value in load_config("poses.toml")["poses"]["ready"].items()
+            if key.startswith("J")
+        }
+        expected_ready_center = calculate_gripper_center(ready_angles)
+        self.assertEqual(ready.gripper_center_mm, expected_ready_center)
         self.assertEqual(ready.pulses_us["J5_gripper"], 1200)
 
         home = next(command for command in sink.commands if command.name == "move_home")
@@ -70,20 +82,23 @@ class PickAndPlaceRegressionTests(unittest.TestCase):
         self.assertEqual(deposit.pulses_us["J3_elbow"], 1660)
 
     def test_intermediate_targets_follow_down_positive_y_and_radial_offsets(self) -> None:
-        machine = PickAndPlaceStateMachine(RecordingSink())
-        target = TargetPosition(230.0, 180.0, 60.0)
-        machine.target = target
+        generator = WaypointGenerator()
+        target = TargetPose(230.0, 180.0, 60.0)
+        offsets = generator.kinematics_settings["target_offsets"]
 
-        in_front = machine._target_in_front_of_object()
-        lifted = machine._target_lifted_from_object()
-        retracted = machine._target_retracted_from_shelf()
+        in_front = generator.target_in_front_of_object(target)
+        lifted = generator.target_lifted_from_object(target)
+        retracted = generator.target_retracted_from_shelf(target)
 
-        self.assertAlmostEqual(hypot(in_front.x_mm, in_front.z_mm), hypot(230.0, 60.0) - 20.0)
+        self.assertAlmostEqual(
+            hypot(in_front.x_mm, in_front.z_mm),
+            hypot(230.0, 60.0) - float(offsets["approach_r_offset_mm"]),
+        )
         self.assertEqual(in_front.y_mm, 140.0)
-        self.assertEqual(lifted, TargetPosition(230.0, 130.0, 60.0))
+        self.assertEqual(lifted, TargetPose(230.0, 130.0, 60.0))
         self.assertAlmostEqual(
             hypot(retracted.x_mm, retracted.z_mm),
-            hypot(230.0, 60.0) - 20.0,
+            hypot(230.0, 60.0) - float(offsets["approach_r_offset_mm"]),
         )
         self.assertEqual(retracted.y_mm, 130.0)
 

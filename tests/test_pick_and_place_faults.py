@@ -6,7 +6,9 @@ from robot_testing.fault_injection import (
     FaultRule,
     RecordingMotionSink,
 )
-from state_machine.pick_and_place import PickAndPlaceStateMachine, TargetPosition
+from planning.models import MotionPlan, PlanningFailure, TargetPose
+from planning.pick_and_place_planner import PickAndPlacePlanner
+from state_machine.pick_and_place import PickAndPlaceStateMachine
 
 
 SEQUENCE = [
@@ -20,6 +22,14 @@ SEQUENCE = [
     "open_gripper",
     "move_home",
 ]
+
+
+def accepted_plan() -> MotionPlan:
+    result = PickAndPlacePlanner(
+        enforce_hardware_safe_limits=False,
+    ).plan(TargetPose(230.0, 180.0, 60.0))
+    assert not isinstance(result, PlanningFailure)
+    return result
 
 
 def make_machine(
@@ -38,11 +48,9 @@ def make_machine(
             )
         ],
     )
-    machine = PickAndPlaceStateMachine(injecting_sink)
-
-    machine.kinematics_setting["target_offsets"].setdefault(
-        "grasp_depth_offset_mm",
-        0.0,
+    machine = PickAndPlaceStateMachine(
+        injecting_sink,
+        plan=accepted_plan(),
     )
     return machine, injecting_sink, recorder
 
@@ -53,7 +61,7 @@ def test_each_state_machine_output_fault_transitions_to_failed(
 ) -> None:
     machine, injecting_sink, recorder = make_machine(failed_command)
 
-    machine.start_pick_and_place(TargetPosition(230.0, 180.0, 60.0))
+    machine.start_pick_and_place()
     success = machine.run_until_finished()
 
     failed_index = SEQUENCE.index(failed_command)
@@ -79,7 +87,7 @@ def test_after_send_fault_is_reported_as_failed_and_stops_sequence() -> None:
         phase=FaultPhase.AFTER_SEND,
     )
 
-    machine.start_pick_and_place(TargetPosition(230.0, 180.0, 60.0))
+    machine.start_pick_and_place()
     success = machine.run_until_finished()
 
     assert not success
