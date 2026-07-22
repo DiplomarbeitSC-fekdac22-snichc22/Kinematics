@@ -151,6 +151,13 @@ controller = RobotController(DryRunMotionSink())
 success = controller.run_pick_and_place(230.0, 180.0, 60.0)
 ```
 
+`RobotController` generates and validates the complete nine-waypoint motion
+plan before it creates the execution state machine. If any future waypoint is
+invalid, `run_pick_and_place()` returns `False`,
+`controller.last_planning_failure` contains the structured reason, and no
+motion command is sent. Dry-run and simulation sinks report commissioning-range
+violations as planning warnings; the PCA9685 path rejects them during planning.
+
 Available motion sinks:
 
 | Sink | Use |
@@ -232,8 +239,9 @@ Do not use the hardware sink until every value marked as provisional has been me
 ```text
 configs/       Robot, servo, pose and simulation configuration
 src/kinematics IK, FK, PWM conversion and workspace checks
+src/planning/ Complete waypoint generation and prevalidation
 src/state_machine
-               Pick-and-place sequencing and command sinks
+               Execution of accepted plans and command sinks
 src/motion/    Interpolation and cancellable execution
 src/hardware/  PCA9685 backend
 src/simulator/ Webots coordinate and motion adapters
