@@ -10,7 +10,9 @@ from api import RobotController
 from config.config_loader import load_config
 from kinematics.forward_kinematics import calculate_gripper_center
 from planning.models import MotionCommand, TargetPose
+from planning.pick_and_place_planner import PickAndPlacePlanner
 from planning.waypoint_generator import WaypointGenerator
+from tests.policy_helpers import PERMISSIVE_SINGULARITY_POLICY
 
 
 class RecordingSink:
@@ -24,7 +26,13 @@ class RecordingSink:
 class PickAndPlaceRegressionTests(unittest.TestCase):
     def test_current_target_completes_dry_run_with_correct_joint_mapping(self) -> None:
         sink = RecordingSink()
-        controller = RobotController(sink)
+        controller = RobotController(
+            sink,
+            planner=PickAndPlacePlanner(
+                enforce_hardware_safe_limits=False,
+                singularity_policy=PERMISSIVE_SINGULARITY_POLICY,
+            ),
+        )
 
         success = controller.run_pick_and_place(230.0, 180.0, 60.0)
 

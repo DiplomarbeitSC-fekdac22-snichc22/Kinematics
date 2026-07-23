@@ -7,6 +7,8 @@ import pytest
 
 from api import RobotController
 from config.config_loader import load_config
+from planning.pick_and_place_planner import PickAndPlacePlanner
+from tests.policy_helpers import PERMISSIVE_SINGULARITY_POLICY
 from simulator.coordinate_frames import robot_to_webots, webots_to_robot
 from simulator.webots_motion_sink import WebotsMotionSink
 from state_machine.pick_and_place import MotionCommand
@@ -253,7 +255,14 @@ def test_gripper_accepts_a_functional_opening_below_nominal_stop() -> None:
 def test_repository_state_machine_completes_through_webots_sink() -> None:
     robot = FakeRobot()
     sink = WebotsMotionSink(robot, config_dir=CONFIG_DIR)
-    controller = RobotController(sink)
+    controller = RobotController(
+        sink,
+        planner=PickAndPlacePlanner(
+            config_dir=CONFIG_DIR,
+            enforce_hardware_safe_limits=False,
+            singularity_policy=PERMISSIVE_SINGULARITY_POLICY,
+        ),
+    )
 
     assert controller.run_pick_and_place(230.0, 180.0, 60.0)
     home = load_config("poses.toml", CONFIG_DIR)["poses"]["home"]

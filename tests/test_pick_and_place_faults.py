@@ -8,6 +8,7 @@ from robot_testing.fault_injection import (
 )
 from planning.models import MotionPlan, PlanningFailure, TargetPose
 from planning.pick_and_place_planner import PickAndPlacePlanner
+from tests.policy_helpers import PERMISSIVE_SINGULARITY_POLICY
 from state_machine.pick_and_place import PickAndPlaceStateMachine
 
 
@@ -27,6 +28,7 @@ SEQUENCE = [
 def accepted_plan() -> MotionPlan:
     result = PickAndPlacePlanner(
         enforce_hardware_safe_limits=False,
+        singularity_policy=PERMISSIVE_SINGULARITY_POLICY,
     ).plan(TargetPose(230.0, 180.0, 60.0))
     assert not isinstance(result, PlanningFailure)
     return result

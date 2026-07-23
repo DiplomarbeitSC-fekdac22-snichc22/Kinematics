@@ -23,8 +23,11 @@ def _normalized_interval_margin(value: float, minimum: float, maximum: float) ->
         raise ValueError("Interval max must be greater than min")
 
     nearest_distance = min(value - minimum, maximum - value)
+    margin = 2.0 * nearest_distance / (maximum - minimum)
+    if abs(margin) <= 1e-9:
+        return 0.0
 
-    return 2.0 * nearest_distance / (maximum - minimum)
+    return margin
 
 
 def analyze_configuration(
