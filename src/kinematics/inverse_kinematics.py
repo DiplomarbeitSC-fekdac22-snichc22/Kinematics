@@ -30,6 +30,9 @@ from config.config_loader import load_config
 
 CONFIG_DIR = ROOT / "configs"
 
+ELBOW_BACK = "elbow_back"
+ELBOW_FORWARD = "elbow_forward"
+
 
 def _joint_for_role(servo_config: dict[str, Any], role: str) -> tuple[str, dict[str, Any]]:
     for joint_name, joint in servo_config["joints"].items():
@@ -38,8 +41,19 @@ def _joint_for_role(servo_config: dict[str, Any], role: str) -> tuple[str, dict[
     raise KeyError(f"No servo joint configured for role {role!r}")
 
 
-def calculate_angles(x_mm: float, y_mm: float, z_mm: float, config_dir: Path | str = CONFIG_DIR) -> dict[str, Any]:
-    """Return J1-J4 angles, PWM estimates, and reachability for one XYZ target."""
+def calculate_angle_solutions(
+        x_mm: float,
+        y_mm: float,
+        z_mm: float,
+        config_dir: Path | str = CONFIG_DIR,
+) -> list[dict[str, Any]]:
+    """Return the elbow-back and elbow-forward IK candidates for one target.
+
+    The two candidates use opposite signs for the relative elbow angle. Both
+    are returned even when one or both violate configured workspace, joint, or
+    pulse limits, so selection and diagnostic code can inspect every
+    mathematical solution.
+    """
     config_dir = Path(config_dir)
     geometry = load_config("robot_geometry.toml", config_dir)
     servo = load_config("servo_calibration.toml", config_dir)
@@ -85,7 +99,7 @@ def calculate_angles(x_mm: float, y_mm: float, z_mm: float, config_dir: Path | s
     if ik["clamp_cosine_rule_argument"]:
         cos_theta3 = clamp_angle(cos_theta3, -1.0, 1.0)
 
-    def solve_branch(elbow_sign: float) -> tuple[float, float, float, float]:
+    def solve_branch(elbow_sign: float) -> tuple[float, float]:
         elbow_rad = atan2(
             elbow_sign * sqrt(max(0.0, 1.0 - cos_theta3 * cos_theta3)),
             cos_theta3,
@@ -93,35 +107,19 @@ def calculate_angles(x_mm: float, y_mm: float, z_mm: float, config_dir: Path | s
         shoulder_rad = atan2(wrist_y, wrist_r) - atan2(
             l2 * sin(elbow_rad), l1 + l2 * cos(elbow_rad)
         )
-        elbow_r = l1 * cos(shoulder_rad)
-        elbow_y = l1 * sin(shoulder_rad)
-        return shoulder_rad, elbow_rad, elbow_r, elbow_y
+        return shoulder_rad, elbow_rad
 
-    elbow_sign = float(
+    elbow_back_sign = float(
         settings.get("fk", {}).get(
             "elbow_relative_sign",
             -1.0,
         )
     )
 
-    theta2_rad, theta3_rad, elbow_r, _ = solve_branch(
-        elbow_sign
-    )
-
-    theta2 = degrees(theta2_rad)
-    theta3 = 180.0 - abs(degrees(theta3_rad))
-    theta4 = degrees(approach - theta2_rad - theta3_rad)
-
     joint_name_1, joint_1 = _joint_for_role(servo, "theta1")
     joint_name_2, joint_2 = _joint_for_role(servo, "theta2")
     joint_name_3, joint_3 = _joint_for_role(servo, "theta3")
     joint_name_4, joint_4 = _joint_for_role(servo, "theta4")
-    angles = {
-        joint_name_1: theta1,
-        joint_name_2: theta2,
-        joint_name_3: theta3,
-        joint_name_4: theta4,
-    }
 
     reachability_reasons: list[str] = []
     min_reach = abs(l1 - l2) + ik["minimum_reach_margin_mm"]
@@ -143,62 +141,95 @@ def calculate_angles(x_mm: float, y_mm: float, z_mm: float, config_dir: Path | s
                 "wrist target is not in front of the shoulder"
             )
 
-    joint_limit_reasons: list[str] = []
-    if validation["check_joint_limits"]:
-        for joint_name, angle in angles.items():
-            joint = servo["joints"][joint_name]
-            if not (joint["theta_min_deg"] <= angle <= joint["theta_max_deg"]):
-                joint_limit_reasons.append(
-                    f"{joint_name} angle {angle:.1f} deg outside "
-                    f"{joint['theta_min_deg']:.1f} - {joint['theta_max_deg']:.1f} deg"
-                )
+    solutions: list[dict[str, Any]] = []
+    for branch, elbow_sign in (
+            (ELBOW_BACK, elbow_back_sign),
+            (ELBOW_FORWARD, -elbow_back_sign),
+    ):
+        theta2_rad, theta3_rad = solve_branch(elbow_sign)
+        theta2 = degrees(theta2_rad)
+        theta3 = 180.0 - abs(degrees(theta3_rad))
+        theta4 = degrees(approach - theta2_rad - theta3_rad)
+        angles = {
+            joint_name_1: theta1,
+            joint_name_2: theta2,
+            joint_name_3: theta3,
+            joint_name_4: theta4,
+        }
 
-    pulse_limit_reasons: list[str] = []
-    if validation["check_pulse_limits"]:
-        for joint_name, angle in angles.items():
-            joint = servo["joints"][joint_name]
-            raw_pulse = angle_to_pwm_unclamped(angle, joint)
-            if not (
-                    joint["pulse_min_us"]
-                    <= raw_pulse
-                    <= joint["pulse_max_us"]
-            ):
-                pulse_limit_reasons.append(
-                    f"{joint_name} requires {raw_pulse:.0f} us outside "
-                    f"{joint['pulse_min_us']:.0f} - "
-                    f"{joint['pulse_max_us']:.0f} us"
-                )
+        joint_limit_reasons: list[str] = []
+        if validation["check_joint_limits"]:
+            for joint_name, angle in angles.items():
+                joint = servo["joints"][joint_name]
+                if not (joint["theta_min_deg"] <= angle <= joint["theta_max_deg"]):
+                    joint_limit_reasons.append(
+                        f"{joint_name} angle {angle:.1f} deg outside "
+                        f"{joint['theta_min_deg']:.1f} - {joint['theta_max_deg']:.1f} deg"
+                    )
 
-    reasons = (
-        reachability_reasons
-        + workspace_reasons
-        + orientation_reasons
-        + joint_limit_reasons
-        + pulse_limit_reasons
-    )
+        pulse_limit_reasons: list[str] = []
+        if validation["check_pulse_limits"]:
+            for joint_name, angle in angles.items():
+                joint = servo["joints"][joint_name]
+                raw_pulse = angle_to_pwm_unclamped(angle, joint)
+                if not (
+                        joint["pulse_min_us"]
+                        <= raw_pulse
+                        <= joint["pulse_max_us"]
+                ):
+                    pulse_limit_reasons.append(
+                        f"{joint_name} requires {raw_pulse:.0f} us outside "
+                        f"{joint['pulse_min_us']:.0f} - "
+                        f"{joint['pulse_max_us']:.0f} us"
+                    )
 
-    return {
-        "angles_deg": {
-            "base": theta1,
-            "shoulder": theta2,
-            "elbow": theta3,
-            "wrist": theta4,
-        },
-        "pwm_us": {
-            "J1": round(angle_to_pwm_unclamped(theta1, joint_1)),
-            "J2": round(angle_to_pwm_unclamped(theta2, joint_2)),
-            "J3": round(angle_to_pwm_unclamped(theta3, joint_3)),
-            "J4": round(angle_to_pwm_unclamped(theta4, joint_4)),
-        },
-        "reachable": not reasons,
-        "reasons": reasons,
-        "reason_groups": {
-            "geometry": reachability_reasons + orientation_reasons,
-            "workspace": workspace_reasons,
-            "joint_limits": joint_limit_reasons,
-            "pulse_limits": pulse_limit_reasons,
-        },
-    }
+        reasons = (
+                reachability_reasons
+                + workspace_reasons
+                + orientation_reasons
+                + joint_limit_reasons
+                + pulse_limit_reasons
+        )
+
+        solutions.append(
+            {
+                "branch": branch,
+                "elbow_relative_sign": elbow_sign,
+                "elbow_relative_angle_deg": degrees(theta3_rad),
+                "angles_deg": {
+                    "base": theta1,
+                    "shoulder": theta2,
+                    "elbow": theta3,
+                    "wrist": theta4,
+                },
+                "pwm_us": {
+                    "J1": round(angle_to_pwm_unclamped(theta1, joint_1)),
+                    "J2": round(angle_to_pwm_unclamped(theta2, joint_2)),
+                    "J3": round(angle_to_pwm_unclamped(theta3, joint_3)),
+                    "J4": round(angle_to_pwm_unclamped(theta4, joint_4)),
+                },
+                "reachable": not reasons,
+                "reasons": reasons,
+                "reason_groups": {
+                    "geometry": reachability_reasons + orientation_reasons,
+                    "workspace": workspace_reasons,
+                    "joint_limits": joint_limit_reasons,
+                    "pulse_limits": pulse_limit_reasons,
+                },
+            }
+        )
+
+    return solutions
+
+
+def calculate_angles(
+        x_mm: float,
+        y_mm: float,
+        z_mm: float,
+        config_dir: Path | str = CONFIG_DIR,
+) -> dict[str, Any]:
+    """Return the legacy elbow-back IK result for one XYZ target."""
+    return calculate_angle_solutions(x_mm, y_mm, z_mm, config_dir)[0]
 
 
 def _print_result(x_mm: float, y_mm: float, z_mm: float) -> None:
