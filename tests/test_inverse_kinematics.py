@@ -5,14 +5,88 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from kinematics.inverse_kinematics import calculate_angles
+from kinematics.inverse_kinematics import (
+    calculate_angle_solutions,
+    calculate_angles,
+)
 from kinematics.forward_kinematics import calculate_gripper_center
 
 
 class InverseKinematicsRegressionTests(unittest.TestCase):
+    def test_returns_both_mathematical_branches(self) -> None:
+        solutions = calculate_angle_solutions(230.0, 180.0, 60.0)
+
+        self.assertEqual(
+            [solution["branch"] for solution in solutions],
+            ["elbow_back", "elbow_forward"],
+        )
+        self.assertEqual(
+            {solution["elbow_relative_sign"] for solution in solutions},
+            {-1.0, 1.0},
+        )
+
+        elbow_back, elbow_forward = solutions
+        self.assertAlmostEqual(
+            elbow_back["elbow_relative_angle_deg"],
+            -elbow_forward["elbow_relative_angle_deg"],
+            places=7,
+        )
+        self.assertAlmostEqual(
+            elbow_back["angles_deg"]["base"],
+            elbow_forward["angles_deg"]["base"],
+            places=7,
+        )
+        self.assertAlmostEqual(
+            elbow_back["angles_deg"]["elbow"],
+            elbow_forward["angles_deg"]["elbow"],
+            places=7,
+        )
+        self.assertNotAlmostEqual(
+            elbow_back["angles_deg"]["shoulder"],
+            elbow_forward["angles_deg"]["shoulder"],
+            places=7,
+        )
+
+        for solution in solutions:
+            angles = solution["angles_deg"]
+            self.assertAlmostEqual(
+                angles["shoulder"]
+                + solution["elbow_relative_angle_deg"]
+                + angles["wrist"],
+                0.0,
+                places=7,
+            )
+
+    def test_returns_branch_even_when_it_violates_joint_limits(self) -> None:
+        elbow_back, elbow_forward = calculate_angle_solutions(
+            230.0,
+            180.0,
+            60.0,
+        )
+
+        self.assertTrue(elbow_back["reachable"])
+        self.assertFalse(elbow_forward["reachable"])
+        self.assertAlmostEqual(
+            elbow_forward["angles_deg"]["shoulder"],
+            8.1582,
+            places=4,
+        )
+        self.assertAlmostEqual(
+            elbow_forward["angles_deg"]["wrist"],
+            121.2998,
+            places=4,
+        )
+        self.assertTrue(
+            any(
+                reason.startswith("J4_wrist angle")
+                for reason in elbow_forward["reason_groups"]["joint_limits"]
+            )
+        )
+
     def test_current_pick_target_is_reachable(self) -> None:
         result = calculate_angles(230.0, 180.0, 60.0)
 
+        self.assertEqual(result["branch"], "elbow_back")
         self.assertTrue(result["reachable"])
         self.assertEqual(result["reasons"], [])
         self.assertAlmostEqual(result["angles_deg"]["base"], 14.6209, places=4)
