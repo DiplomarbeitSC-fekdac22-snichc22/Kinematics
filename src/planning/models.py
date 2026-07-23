@@ -1,6 +1,8 @@
 from dataclasses import dataclass, field
 from enum import Enum
 
+from kinematics.analysis_models import ConfigurationAnalysis
+
 
 class ValidationStatus(str, Enum):
     """Validation state of a generated waypoint."""
@@ -42,6 +44,7 @@ class Waypoint:
     joint_angles_deg: dict[str, float] | None = None
     pulses_us: dict[str, int] = field(default_factory=dict)
     ik_branch: str | None = None
+    singularity_analysis: ConfigurationAnalysis | None = None
     warnings: tuple[str, ...] = ()
     validation_status: ValidationStatus = ValidationStatus.PENDING
     rejection_reasons: tuple[str, ...] = ()
@@ -87,4 +90,3 @@ class PlanningFailure:
     message: str
     reasons: tuple[str, ...] = ()
     rejected_waypoint: Waypoint | None = None
-
