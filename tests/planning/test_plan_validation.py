@@ -2,6 +2,7 @@ from math import inf, nan
 
 import pytest
 
+import planning.pick_and_place_planner as planner_module
 from planning.models import MotionPlan, PlanningFailure, TargetPose, ValidationStatus
 from planning.pick_and_place_planner import PickAndPlacePlanner
 
@@ -58,3 +59,35 @@ def test_invalid_named_pose_reports_joint_limit_code() -> None:
     assert result.waypoint == "ready"
     assert result.code == "JOINT_LIMIT_VIOLATION"
     assert result.rejected_waypoint.validation_status is ValidationStatus.INVALID
+
+
+def test_each_cartesian_waypoint_uses_previous_selected_joint_state(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    received_states: list[dict[str, float]] = []
+    real_selector = planner_module.select_continuous_solution
+
+    def recording_selector(solutions, current_joint_angles, config_dir):
+        received_states.append(dict(current_joint_angles))
+        return real_selector(solutions, current_joint_angles, config_dir)
+
+    monkeypatch.setattr(
+        planner_module,
+        "select_continuous_solution",
+        recording_selector,
+    )
+    planner = PickAndPlacePlanner(enforce_hardware_safe_limits=False)
+
+    result = planner.plan(TargetPose(230.0, 180.0, 60.0))
+
+    assert isinstance(result, MotionPlan)
+    selected_cartesian_states = [
+        result.motion_for(name).command.joint_angles_deg
+        for name in ("pre_grasp", "grasp", "lift", "retract")
+    ]
+    assert received_states[0] == {
+        key: float(value)
+        for key, value in planner.poses["poses"]["ready"].items()
+        if key.startswith("J")
+    }
+    assert received_states[1:] == selected_cartesian_states
