@@ -1,10 +1,10 @@
 from dataclasses import replace
 from pathlib import Path
-from typing import Any
 
 from config.config_loader import DEFAULT_CONFIG_DIR, load_config
 from kinematics.forward_kinematics import calculate_gripper_center
-from kinematics.inverse_kinematics import calculate_angles
+from kinematics.inverse_kinematics import calculate_angle_solutions
+from kinematics.solution_selector import select_continuous_solution
 from planning.models import (
     MotionCommand,
     MotionPlan,
@@ -123,12 +123,20 @@ class PickAndPlacePlanner:
 
         planned: list[PlannedMotion] = []
         plan_warnings: list[str] = []
+        current_joint_angles: dict[str, float] | None = None
         for waypoint in generated:
-            result = self._validate_waypoint(waypoint)
+            result = self._validate_waypoint(
+                waypoint,
+                current_joint_angles,
+            )
             if isinstance(result, PlanningFailure):
                 return result
             planned.append(result)
             plan_warnings.extend(result.waypoint.warnings)
+            if result.command.joint_angles_deg is not None:
+                current_joint_angles = dict(
+                    result.command.joint_angles_deg
+                )
 
         return MotionPlan(
             target=target,
@@ -139,13 +147,17 @@ class PickAndPlacePlanner:
     def _validate_waypoint(
         self,
         waypoint: Waypoint,
+        current_joint_angles: dict[str, float] | None,
     ) -> PlannedMotion | PlanningFailure:
         if waypoint.gripper_pulse_key is not None:
             return self._validate_gripper_waypoint(waypoint)
         if waypoint.named_pose is not None:
             return self._validate_named_pose_waypoint(waypoint)
         if waypoint.cartesian_target is not None:
-            return self._validate_cartesian_waypoint(waypoint)
+            return self._validate_cartesian_waypoint(
+                waypoint,
+                current_joint_angles,
+            )
         return _failure(
             waypoint,
             "INVALID_WAYPOINT",
@@ -155,6 +167,7 @@ class PickAndPlacePlanner:
     def _validate_cartesian_waypoint(
         self,
         waypoint: Waypoint,
+        current_joint_angles: dict[str, float] | None,
     ) -> PlannedMotion | PlanningFailure:
         target = waypoint.cartesian_target
         assert target is not None
@@ -178,13 +191,26 @@ class PickAndPlacePlanner:
                 workspace_reasons,
             )
 
+        if current_joint_angles is None:
+            return _failure(
+                waypoint,
+                "CURRENT_JOINT_STATE_UNAVAILABLE",
+                ("No previous waypoint provides a current joint state",),
+            )
+
         try:
-            ik_result = calculate_angles(
+            solutions = calculate_angle_solutions(
                 target.x_mm,
                 target.y_mm,
                 target.z_mm,
                 self.config_dir,
             )
+            selected = select_continuous_solution(
+                solutions,
+                current_joint_angles,
+                self.config_dir,
+            )
+            ik_result = selected.solution
         except (ArithmeticError, KeyError, TypeError, ValueError) as exc:
             return _failure(
                 waypoint,
@@ -192,7 +218,7 @@ class PickAndPlacePlanner:
                 (f"{type(exc).__name__}: {exc}",),
             )
 
-        joint_angles = self._joint_angles_from_ik(ik_result)
+        joint_angles = selected.joint_angles_deg
         joint_reasons = validate_joint_angles(
             joint_angles,
             self.servo_calibration,
@@ -229,9 +255,7 @@ class PickAndPlacePlanner:
             joint_angles=joint_angles,
             pulses_us=pulse_values,
             gripper_center=target.as_dict(),
-            ik_branch=str(
-                self.kinematics_settings["ik"]["solution_preference"]
-            ),
+            ik_branch=str(ik_result["branch"]),
         )
 
     def _validate_named_pose_waypoint(
@@ -474,16 +498,3 @@ class PickAndPlacePlanner:
             ),
         )
         return PlannedMotion(waypoint=accepted, command=command)
-
-    def _joint_angles_from_ik(
-        self,
-        result: dict[str, Any],
-    ) -> dict[str, float]:
-        angles_by_label = result["angles_deg"]
-        joint_angles: dict[str, float] = {}
-        for joint_name, joint in self.servo_calibration["joints"].items():
-            role = joint.get("kinematic_role")
-            result_key = _IK_RESULT_KEYS_BY_ROLE.get(str(role))
-            if result_key is not None:
-                joint_angles[joint_name] = float(angles_by_label[result_key])
-        return joint_angles
