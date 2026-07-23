@@ -2,8 +2,15 @@ from dataclasses import replace
 from pathlib import Path
 
 from config.config_loader import DEFAULT_CONFIG_DIR, load_config
+from kinematics.analysis_models import ConfigurationAnalysis
 from kinematics.forward_kinematics import calculate_gripper_center
 from kinematics.inverse_kinematics import calculate_angle_solutions
+from kinematics.singularity_analyzer import analyze_configuration
+from kinematics.singularity_policy import (
+    SingularityPolicy,
+    singularity_policy_from_settings,
+    singularity_policy_rejection_reasons,
+)
 from kinematics.solution_selector import select_continuous_solution
 from planning.models import (
     MotionCommand,
@@ -63,6 +70,7 @@ class PickAndPlacePlanner:
         *,
         config_dir: Path | str = DEFAULT_CONFIG_DIR,
         enforce_hardware_safe_limits: bool = True,
+        singularity_policy: SingularityPolicy | None = None,
     ) -> None:
         self.config_dir = Path(config_dir)
         self.enforce_hardware_safe_limits = enforce_hardware_safe_limits
@@ -77,6 +85,13 @@ class PickAndPlacePlanner:
         self.poses = load_config(
             "poses.toml",
             self.config_dir,
+        )
+        self.singularity_policy = (
+            singularity_policy
+            if singularity_policy is not None
+            else singularity_policy_from_settings(
+                self.kinematics_settings
+            )
         )
         self.generator = WaypointGenerator(
             config_dir=self.config_dir,
@@ -124,10 +139,12 @@ class PickAndPlacePlanner:
         planned: list[PlannedMotion] = []
         plan_warnings: list[str] = []
         current_joint_angles: dict[str, float] | None = None
+        current_analysis: ConfigurationAnalysis | None = None
         for waypoint in generated:
             result = self._validate_waypoint(
                 waypoint,
                 current_joint_angles,
+                current_analysis,
             )
             if isinstance(result, PlanningFailure):
                 return result
@@ -136,6 +153,12 @@ class PickAndPlacePlanner:
             if result.command.joint_angles_deg is not None:
                 current_joint_angles = dict(
                     result.command.joint_angles_deg
+                )
+            current_analysis = result.waypoint.singularity_analysis
+            if current_analysis is None:
+                raise RuntimeError(
+                    f"Accepted waypoint {waypoint.name!r} has no "
+                    "singularity analysis"
                 )
 
         return MotionPlan(
@@ -148,9 +171,14 @@ class PickAndPlacePlanner:
         self,
         waypoint: Waypoint,
         current_joint_angles: dict[str, float] | None,
+        current_analysis: ConfigurationAnalysis | None,
     ) -> PlannedMotion | PlanningFailure:
         if waypoint.gripper_pulse_key is not None:
-            return self._validate_gripper_waypoint(waypoint)
+            return self._validate_gripper_waypoint(
+                waypoint,
+                current_joint_angles,
+                current_analysis,
+            )
         if waypoint.named_pose is not None:
             return self._validate_named_pose_waypoint(waypoint)
         if waypoint.cartesian_target is not None:
@@ -209,6 +237,7 @@ class PickAndPlacePlanner:
                 solutions,
                 current_joint_angles,
                 self.config_dir,
+                policy=self.singularity_policy,
             )
             ik_result = selected.solution
         except (ArithmeticError, KeyError, TypeError, ValueError) as exc:
@@ -227,35 +256,47 @@ class PickAndPlacePlanner:
             joint_angles,
             self.servo_calibration,
         )
+        analyzed_waypoint = replace(
+            waypoint,
+            ik_branch=str(ik_result["branch"]),
+            singularity_analysis=selected.analysis,
+        )
 
         ik_reasons = tuple(
             ik_result.get("reason_groups", {}).get("geometry", ())
         )
         if ik_reasons:
             return _failure(
-                waypoint,
+                analyzed_waypoint,
                 "IK_UNREACHABLE",
                 ik_reasons,
             )
         if joint_reasons:
             return _failure(
-                waypoint,
+                analyzed_waypoint,
                 "JOINT_LIMIT_VIOLATION",
                 joint_reasons,
             )
         if pulse_reasons:
             return _failure(
-                waypoint,
+                analyzed_waypoint,
                 "SERVO_PULSE_LIMIT_VIOLATION",
                 pulse_reasons,
             )
+        if selected.policy_rejection_reasons:
+            return _failure(
+                analyzed_waypoint,
+                "SINGULARITY_POLICY_VIOLATION",
+                selected.policy_rejection_reasons,
+            )
 
         return self._accepted_motion(
-            waypoint,
+            analyzed_waypoint,
             joint_angles=joint_angles,
             pulses_us=pulse_values,
             gripper_center=target.as_dict(),
             ik_branch=str(ik_result["branch"]),
+            singularity_analysis=selected.analysis,
         )
 
     def _validate_named_pose_waypoint(
@@ -323,6 +364,33 @@ class PickAndPlacePlanner:
                 pulse_reasons,
             )
 
+        try:
+            analysis = analyze_configuration(
+                joint_angles,
+                self.config_dir,
+            )
+        except (ArithmeticError, KeyError, TypeError, ValueError) as exc:
+            return _failure(
+                waypoint,
+                "SINGULARITY_ANALYSIS_ERROR",
+                (f"{type(exc).__name__}: {exc}",),
+            )
+
+        analyzed_waypoint = replace(
+            waypoint,
+            singularity_analysis=analysis,
+        )
+        policy_reasons = singularity_policy_rejection_reasons(
+            analysis,
+            self.singularity_policy,
+        )
+        if policy_reasons:
+            return _failure(
+                analyzed_waypoint,
+                "SINGULARITY_POLICY_VIOLATION",
+                policy_reasons,
+            )
+
         gripper_joint = str(
             self.kinematics_settings["model"]["gripper_joint"]
         )
@@ -374,15 +442,18 @@ class PickAndPlacePlanner:
             )
 
         return self._accepted_motion(
-            replace(waypoint, cartesian_target=named_target),
+            replace(analyzed_waypoint, cartesian_target=named_target),
             joint_angles=joint_angles,
             pulses_us=pulses,
             gripper_center=gripper_center,
+            singularity_analysis=analysis,
         )
 
     def _validate_gripper_waypoint(
         self,
         waypoint: Waypoint,
+        current_joint_angles: dict[str, float] | None,
+        current_analysis: ConfigurationAnalysis | None,
     ) -> PlannedMotion | PlanningFailure:
         pulse_key = waypoint.gripper_pulse_key
         assert pulse_key is not None
@@ -435,6 +506,16 @@ class PickAndPlacePlanner:
                 pulse_reasons,
             )
 
+        if current_joint_angles is None or current_analysis is None:
+            return _failure(
+                waypoint,
+                "CURRENT_JOINT_STATE_UNAVAILABLE",
+                (
+                    "No previous waypoint provides a joint state and "
+                    "singularity analysis",
+                ),
+            )
+
         return self._accepted_motion(
             waypoint,
             joint_angles=None,
@@ -444,6 +525,7 @@ class PickAndPlacePlanner:
                 if waypoint.cartesian_target is not None
                 else None
             ),
+            singularity_analysis=current_analysis,
         )
 
     def _accepted_motion(
@@ -454,6 +536,7 @@ class PickAndPlacePlanner:
         pulses_us: dict[str, int],
         gripper_center: dict[str, float] | None,
         ik_branch: str | None = None,
+        singularity_analysis: ConfigurationAnalysis,
     ) -> PlannedMotion | PlanningFailure:
         hardware_reasons = validate_hardware_safe_pulses(
             pulses_us,
@@ -479,6 +562,7 @@ class PickAndPlacePlanner:
             ),
             pulses_us=dict(pulses_us),
             ik_branch=ik_branch,
+            singularity_analysis=singularity_analysis,
             warnings=warnings,
             validation_status=ValidationStatus.VALID,
             rejection_reasons=(),
