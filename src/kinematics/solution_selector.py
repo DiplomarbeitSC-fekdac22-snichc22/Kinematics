@@ -7,6 +7,11 @@ from config.config_loader import DEFAULT_CONFIG_DIR, load_config
 from kinematics.analysis_models import ConfigurationAnalysis
 from kinematics.inverse_kinematics import ELBOW_BACK, ELBOW_FORWARD
 from kinematics.singularity_analyzer import analyze_configuration
+from kinematics.singularity_policy import (
+    SingularityPolicy,
+    singularity_policy_from_settings,
+    singularity_policy_rejection_reasons,
+)
 
 
 _IK_RESULT_KEYS_BY_ROLE = {
@@ -23,6 +28,7 @@ class RankedIKSolution:
     joint_angles_deg: dict[str, float]
     analysis: ConfigurationAnalysis
     valid: bool
+    policy_rejection_reasons: tuple[str, ...]
     joint_distance_deg: float
     preferred_branch: bool
 
@@ -93,6 +99,8 @@ def rank_continuous_solutions(
     solutions: Sequence[dict[str, Any]],
     current_joint_angles_deg: Mapping[str, float],
     config_dir: Path | str = DEFAULT_CONFIG_DIR,
+    *,
+    policy: SingularityPolicy | None = None,
 ) -> tuple[RankedIKSolution, ...]:
     """Rank IK candidates in the configured safety and continuity order"""
     if not solutions:
@@ -101,6 +109,8 @@ def rank_continuous_solutions(
     config_dir = Path(config_dir)
     settings = load_config("kinematics_settings.toml", config_dir)
     servo_calibration = load_config("servo_calibration.toml", config_dir)
+    if policy is None:
+        policy = singularity_policy_from_settings(settings)
 
     preferred_branch = str(settings["ik"]["solution_preference"])
     if preferred_branch not in {ELBOW_BACK, ELBOW_FORWARD}:
@@ -119,9 +129,14 @@ def rank_continuous_solutions(
             config_dir,
             elbow_relative_sign=float(solution["elbow_relative_sign"]),
         )
+        policy_reasons = singularity_policy_rejection_reasons(
+            analysis,
+            policy,
+        )
         valid = (
             bool(solution.get("reachable", False))
             and analysis.constraint_status != "invalid"
+            and not policy_reasons
         )
         ranked_solutions.append(
             RankedIKSolution(
@@ -129,6 +144,7 @@ def rank_continuous_solutions(
                 joint_angles_deg=joint_angles,
                 analysis=analysis,
                 valid=valid,
+                policy_rejection_reasons=policy_reasons,
                 joint_distance_deg=_joint_distance_deg(
                     joint_angles,
                     current_joint_angles_deg,
@@ -146,10 +162,13 @@ def select_continuous_solution(
     solutions: Sequence[dict[str, Any]],
     current_joint_angles_deg: Mapping[str, float],
     config_dir: Path | str = DEFAULT_CONFIG_DIR,
+    *,
+    policy: SingularityPolicy | None = None,
 ) -> RankedIKSolution:
     """Return the highest-ranked IK solution for the current joint state"""
     return rank_continuous_solutions(
         solutions,
         current_joint_angles_deg,
         config_dir,
+        policy=policy,
     )[0]
