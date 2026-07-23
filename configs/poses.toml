@@ -1,12 +1,14 @@
-# Named joint poses for kinematics testing.
-# Angles use the configured positive-up shoulder and positive elbow-bend conventions.
-# They are mathematical joint angles, not guaranteed real servo angles.
-# Update after measuring physical home and safe limits.
+# Named joint poses for kinematics testing and verified controller playback.
+# The top-level J1-J5 values use the configured positive-up shoulder and positive elbow-bend conventions.
+# Nested controller angles are the manual Robot-Controller command values used to record each real pose.
+# Nested pulse overrides are the concrete PCA9685 commands used when executing a recorded named pose.
 
 # Version of this configuration file format.
-schema_version = "1.4"
+schema_version = "2.0"
 # Unit used for all joint-angle values in this file.
 units_angle = "deg"
+# Unit used for recorded pulse-width values in this file.
+units_pulse = "us"
 
 [poses.cad_reference]
 # Human-readable explanation of this pose.
@@ -24,51 +26,167 @@ J5_gripper = 0.0
 
 [poses.home]
 # Human-readable explanation of this pose.
-description = "Provisional photo-matched hanging pose inside the free workcell"
-# Base rotation angle for the home pose.
+description = "Physically recorded home pose; mathematical joint values remain provisional for FK and simulation"
+# Base rotation angle in the mathematical kinematic convention.
 J1_base = 0.0
-# Shoulder angle for the home pose.
+# Shoulder angle in the mathematical kinematic convention.
 J2_shoulder = -90.0
-# Positive elbow bend angle for the home pose.
+# Positive elbow bend angle in the mathematical kinematic convention.
 J3_elbow = 150.0
-# Wrist angle for the home pose.
+# Wrist angle in the mathematical kinematic convention.
 J4_wrist = 60.0
 # Gripper command for the home pose.
 J5_gripper = 0.0
-# Marks that this pose still needs real-world measurement.
-requires_measurement = true
+# Timestamp written by the manual pose recorder.
+recorded_at_utc = "2026-07-23T12:06:27.985351+00:00"
+# The controller command and pulse values were measured on the real robot.
+requires_measurement = false
+# Physical mathematical link angles still have to be measured independently.
+kinematic_angles_require_measurement = true
+
+[poses.home.controller_angles_deg]
+J1_base = 20
+J2_shoulder = 83
+J3_elbow = 115
+J4_wrist = 36
+J5_gripper = 0
+
+[poses.home.pulse_counts]
+J1_base = 200
+J2_shoulder = 357
+J3_elbow = 437
+J4_wrist = 240
+J5_gripper = 150
+
+[poses.home.recorded_pulses_us]
+J1_base = 976.5625
+J2_shoulder = 1743.1640625
+J3_elbow = 2133.7890625
+J4_wrist = 1171.875
+J5_gripper = 732.421875
 
 [poses.ready]
 # Human-readable explanation of this pose.
-description = "Photo-matched ready pose: shoulder down, elbow forward/down, tool level"
-# Base rotation angle for the ready pose.
+description = "Physically recorded ready pose; mathematical joint values remain provisional for FK and simulation"
+# Base rotation angle in the mathematical kinematic convention.
 J1_base = 0.0
-# Shoulder angle for the ready pose.
+# Shoulder angle in the mathematical kinematic convention.
 J2_shoulder = -90.0
-# Positive elbow bend angle for the ready pose.
+# Positive elbow bend angle in the mathematical kinematic convention.
 J3_elbow = 150.0
-# Wrist angle for the ready pose.
+# Wrist angle in the mathematical kinematic convention.
 J4_wrist = 60.0
 # Gripper command for the ready pose.
 J5_gripper = 0.0
-# Marks that this pose must be tested before real use.
-requires_verification = true
+# Timestamp written by the manual pose recorder.
+recorded_at_utc = "2026-07-23T12:09:13.157249+00:00"
+# The recorded real pose no longer requires controller verification.
+requires_verification = false
+# Physical mathematical link angles still have to be measured independently.
+kinematic_angles_require_measurement = true
+
+[poses.ready.controller_angles_deg]
+J1_base = 21
+J2_shoulder = 93
+J3_elbow = 137
+J4_wrist = 50
+J5_gripper = 0
+
+[poses.ready.pulse_counts]
+J1_base = 202
+J2_shoulder = 382
+J3_elbow = 492
+J4_wrist = 275
+J5_gripper = 150
+
+[poses.ready.recorded_pulses_us]
+J1_base = 986.328125
+J2_shoulder = 1865.234375
+J3_elbow = 2402.34375
+J4_wrist = 1342.7734375
+J5_gripper = 732.421875
 
 [poses.deposit]
 # Human-readable explanation of this pose.
-description = "IK-derived roof-mounted fallback for the measured drop-off target x=0, y=370, z=130 mm"
-# Base rotation angle for the deposit pose.
+description = "Physically recorded drop-off pose for the measured target x=0, y=370, z=130 mm"
+# Base rotation angle in the mathematical kinematic convention.
 J1_base = 90.0
-# Shoulder angle for the deposit pose.
+# Shoulder angle in the mathematical kinematic convention.
 J2_shoulder = -119.37702066934618
-# Positive elbow bend angle for the deposit pose.
+# Positive elbow bend angle in the mathematical kinematic convention.
 J3_elbow = 111.6318276707909
-# Wrist angle for the deposit pose.
+# Wrist angle in the mathematical kinematic convention.
 J4_wrist = 51.008848340137085
 # Gripper command for the deposit pose.
 J5_gripper = 0.0
-# Marks that this pose must be tested before real use.
-requires_verification = true
+# Timestamp written by the manual pose recorder.
+recorded_at_utc = "2026-07-23T12:10:47.263760+00:00"
+# The recorded real pose no longer requires controller verification.
+requires_verification = false
+# Physical mathematical link angles still have to be measured independently.
+kinematic_angles_require_measurement = true
+
+[poses.deposit.controller_angles_deg]
+J1_base = 80
+J2_shoulder = 77
+J3_elbow = 104
+J4_wrist = 32
+J5_gripper = 0
+
+[poses.deposit.pulse_counts]
+J1_base = 350
+J2_shoulder = 342
+J3_elbow = 410
+J4_wrist = 230
+J5_gripper = 150
+
+[poses.deposit.recorded_pulses_us]
+J1_base = 1708.984375
+J2_shoulder = 1669.921875
+J3_elbow = 2001.953125
+J4_wrist = 1123.046875
+J5_gripper = 732.421875
+
+[poses.sees_everything]
+# Human-readable explanation of this pose.
+description = "Physically recorded overview pose in which the cameras can see the relevant workspace"
+# Provisional mathematical base rotation inferred relative to the recorded home command.
+J1_base = -20.0
+# Provisional mathematical shoulder angle inferred relative to the recorded home command.
+J2_shoulder = -81.0
+# Provisional positive elbow bend inferred relative to the recorded home command.
+J3_elbow = 117.0
+# Provisional mathematical wrist angle inferred relative to the recorded home command.
+J4_wrist = 33.0
+# Gripper command for the overview pose.
+J5_gripper = 0.0
+# Timestamp written by the manual pose recorder.
+recorded_at_utc = "2026-07-23T12:24:08.870284+00:00"
+# The controller command and pulse values were measured on the real robot.
+requires_measurement = false
+# Physical mathematical link angles still have to be measured independently.
+kinematic_angles_require_measurement = true
+
+[poses.sees_everything.controller_angles_deg]
+J1_base = 0
+J2_shoulder = 92
+J3_elbow = 82
+J4_wrist = 9
+J5_gripper = 0
+
+[poses.sees_everything.pulse_counts]
+J1_base = 150
+J2_shoulder = 380
+J3_elbow = 355
+J4_wrist = 172
+J5_gripper = 150
+
+[poses.sees_everything.recorded_pulses_us]
+J1_base = 732.421875
+J2_shoulder = 1855.46875
+J3_elbow = 1733.3984375
+J4_wrist = 839.84375
+J5_gripper = 732.421875
 
 [cartesian_targets.drop_off]
 # Complete measured drop-off target in the top-down runtime frame.
@@ -83,12 +201,14 @@ z_direction = "right"
 source = "Maße Roboter 1. Runde.md; follow-up physical measurement"
 
 [gripper_commands]
-# These are pulse commands, not angles. Values must be measured.
+# These are pulse commands, not mathematical joint angles. Values were recorded from the verified manual controller mapping.
 # Pulse width used to open the gripper.
-open_pulse_us = 1200
+open_pulse_us = 732.421875
 # Pulse width used to fully close the gripper.
-closed_pulse_us = 1800
+closed_pulse_us = 1831.0546875
 # Pulse width used to keep holding an object after gripping.
-hold_pulse_us = 1700
-# Marks that the gripper pulse values still need physical measurement.
-requires_measurement = true
+hold_pulse_us = 1831.0546875
+# The electrical open/closed command values are recorded.
+requires_measurement = false
+# Reliable holding still requires a payload test.
+hold_requires_object_test = true

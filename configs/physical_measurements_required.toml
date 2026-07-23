@@ -1,80 +1,81 @@
 # Physical measurements still required before real robot operation.
-# Copied/adapted from RobotKinematicMeasurements.xlsx and updated with "Maße Roboter 1. Runde.md".
+# Copied/adapted from RobotKinematicMeasurements.xlsx, updated with "Maße Roboter 1. Runde.md",
+# and reconciled with the controller pose recording from 2026-07-23.
 
 # Version of this configuration file format.
-schema_version = "1.0"
+schema_version = "1.1"
 
 [[items]]
 # Name of the required measurement.
-variable = "theta_min/theta_max per joint"
+variable = "mathematical theta_min/theta_max per joint"
 # Unit used for this measurement.
 unit = "deg"
 # Importance level for completing this measurement.
 priority = "must"
-# Why this value cannot be trusted from CAD alone.
-reason = "Static CAD pose does not include servo travel limits."
+# Why this value cannot be trusted from CAD or controller command limits alone.
+reason = "The recorded Robot-Controller angle limits are command-space values, not measured physical link angles in the kinematic convention."
 # How to measure the value on the real robot.
-method = "Jog each joint slowly to safe mechanical limits and record angle with a protractor or inclinometer."
+method = "Jog each joint slowly to safe mechanical limits and measure the corresponding physical link angle with a protractor, inclinometer, or camera calibration."
 
 [[items]]
 # Name of the required measurement.
-variable = "theta_home per joint"
+variable = "mathematical theta_home per joint"
 # Unit used for this measurement.
 unit = "deg"
 # Importance level for completing this measurement.
 priority = "must"
-# Why this value cannot be trusted from CAD alone.
-reason = "STEP gives one assembly pose, not your chosen home pose."
+# Why this value cannot be trusted from the controller recording alone.
+reason = "The home controller commands and pulses are recorded, but the associated physical link angles are still provisional."
 # How to measure the value on the real robot.
-method = "Define a repeatable home pose and measure all joint angles."
+method = "Move to the recorded home pulse set and measure all physical link angles in the kinematic coordinate convention."
 
 [[items]]
 # Name of the required measurement.
-variable = "pulse_min/pulse_max per servo"
+variable = "assembled pulse_min/pulse_max per servo"
 # Unit used for this measurement.
 unit = "us"
 # Importance level for completing this measurement.
 priority = "must"
-# Why this value cannot be trusted from CAD alone.
-reason = "The product sheets provide electrical 500-2500 us endpoints for J1-J4, but not safe limits for the assembled mechanism; the supplied MG995 sheets omit pulse endpoints."
+# Why this value is not fully established by the controller configuration.
+reason = "The controller mapping and software angle limits are recorded, but not every assembled mechanical endpoint has been verified independently against the servo datasheets."
 # How to measure the value on the real robot.
-method = "Starting inside the enforced 1000-2000 us gate, jog each installed servo slowly and record safe assembled limits; separately establish the MG995 electrical and gripper limits."
+method = "Starting from the recorded poses, jog each installed servo slowly and confirm safe assembled limits without loading cables, joints, or shelf geometry."
 
 [[items]]
-# Name of the required measurement.
+# Name of the completed measurement.
 variable = "pulse_home per servo"
 # Unit used for this measurement.
 unit = "us"
-# Importance level for completing this measurement.
-priority = "must"
-# Why this value cannot be trusted from CAD alone.
-reason = "No electrical calibration is available in CAD."
-# How to measure the value on the real robot.
-method = "Record pulse width at chosen home pose."
+# Completion status for this measurement.
+priority = "complete"
+# Why this value is now available.
+reason = "The manual controller recorder captured the exact PCA9685 counts and pulse widths for the home pose."
+# Where the completed values are stored.
+method = "See poses.home.pulse_counts and poses.home.recorded_pulses_us in configs/poses.toml."
 
 [[items]]
 # Name of the required measurement.
-variable = "servo direction sign"
+variable = "mathematical servo direction sign"
 # Unit or value format used for this measurement.
 unit = "+1/-1"
 # Importance level for completing this measurement.
 priority = "must"
-# Why this value cannot be trusted from CAD alone.
-reason = "CAD cannot show whether increasing PWM increases or decreases the mathematical angle."
+# Why this value cannot be trusted from the controller direction alone.
+reason = "The controller confirms that a larger command produces a larger pulse, but the sign relative to each mathematical kinematic angle still requires physical verification."
 # How to measure the value on the real robot.
-method = "Increase pulse slightly and observe angle direction."
+method = "Increase the pulse slightly and observe the corresponding physical link-angle direction in the kinematic convention."
 
 [[items]]
-# Name of the required measurement.
+# Name of the completed measurement.
 variable = "gripper open/closed pulse"
 # Unit used for this measurement.
 unit = "us"
-# Importance level for completing this measurement.
-priority = "must"
-# Why this value cannot be trusted from CAD alone.
-reason = "STEP shows geometry, not servo control endpoints."
-# How to measure the value on the real robot.
-method = "Record pulse values for fully open and reliable closed positions."
+# Completion status for this measurement.
+priority = "complete"
+# Why this value is now available.
+reason = "The verified controller uses 0 degrees/count 150 for open and 90 degrees/count 375 for closed."
+# Where the completed values are stored.
+method = "See poses.gripper_commands and joints.J5_gripper in configs/servo_calibration.toml."
 
 [[items]]
 # Name of the required measurement.
@@ -84,9 +85,9 @@ unit = "mm"
 # Importance level for completing this measurement.
 priority = "should"
 # Why this value cannot be trusted from CAD alone.
-reason = "The maximum opening is now measured as 70 mm, but the minimum/closed inner jaw distance is still unknown."
+reason = "The maximum opening is measured as 70 mm and the closed pulse is recorded, but the minimum inner jaw distance is still unknown."
 # How to measure the value on the real robot.
-method = "Measure the inner jaw distance at the reliable closed position with calipers."
+method = "Command the recorded closed pulse and measure the inner jaw distance with calipers."
 
 [[items]]
 # Name of the required measurement.
@@ -107,7 +108,7 @@ variable = "collision/cable limits"
 unit = "mm/deg"
 # Importance level for completing this measurement.
 priority = "should"
-# Why this value cannot be trusted from CAD alone.
-reason = "Static CAD does not show cable routing under motion."
+# Why this value cannot be trusted from the recorded poses alone.
+reason = "The four recorded poses do not cover every path or cable-routing condition."
 # How to measure the value on the real robot.
-method = "Move arm through its range and record unsafe zones."
+method = "Move the arm through the intended workspace and record unsafe zones and cable constraints."

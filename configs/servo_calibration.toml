@@ -1,17 +1,17 @@
-# Provisional servo calibration for kinematics output.
+# Servo calibration for kinematics output and the verified manual-controller mapping.
 # Product-sheet pulse values are recorded per joint. Do not assume that every
 # servo shares the same electrical endpoints.
-# IMPORTANT: STEP/CAD does not contain safe mechanical limits, actual servo direction, or final pulse calibration.
-# Measure these values before commanding real hardware.
+# IMPORTANT: The controller command angles are not automatically the same as the mathematical kinematic joint angles.
+# Measure physical link angles before treating controller-angle values as kinematic calibration.
 
 # Version of this configuration file format.
-schema_version = "2.1"
+schema_version = "2.2"
 # Unit used for joint-angle values.
 units_angle = "deg"
 # Unit used for servo pulse-width values.
 units_pulse = "us"
 # Safety status of this calibration data.
-calibration_status = "provisional_not_safe_for_unattended_real_robot"
+calibration_status = "controller_mapping_recorded_kinematic_angles_provisional"
 
 [defaults]
 # PWM frequency used for all hobby servo channels.
@@ -22,19 +22,23 @@ pulse_electrical_min_us = 500
 pulse_electrical_center_us = 1500
 # Highest endpoint stated by the supplied 20 kg and analog-feedback sheets.
 pulse_electrical_max_us = 2500
-# Conservative first-test pulse range. Expand only after manual verification.
-# Lower bound used for safe initial hardware tests.
-pulse_initial_safe_min_us = 1000
-# Upper bound used for safe initial hardware tests.
-pulse_initial_safe_max_us = 2000
+# Lower commissioning bound verified by the recorded controller positions.
+pulse_initial_safe_min_us = 732
+# Upper commissioning bound retained from the supplied servo sheets.
+pulse_initial_safe_max_us = 2500
 # Travel range of the supplied 270 degree digital-servo profile.
 servo_nominal_range_deg = 270.0
-# Provisional conversion factor from angle degrees to pulse microseconds.
+# Provisional conversion factor from mathematical angle degrees to pulse microseconds.
 us_per_degree_nominal = 7.4074074074
-# Whether the PCA9685 hardware sink should enforce the conservative first-test
-# range. Kinematics still reports the unclipped calibrated pulse so an unsafe
-# request is visible instead of silently changed.
+# Whether the PCA9685 hardware sink should enforce the commissioning range.
+# Kinematics still reports the unclipped calibrated pulse so an unsafe request
+# is visible instead of silently changed.
 clamp_to_initial_safe_range = true
+# Legacy Robot-Controller mapping used to obtain the recorded named poses.
+controller_pulse_count_min = 150
+controller_pulse_count_max = 600
+controller_mapping_angle_min_deg = 0
+controller_mapping_angle_max_deg = 180
 
 [joints.J1_base]
 # Physical function of this joint.
@@ -48,7 +52,7 @@ pca9685_channel = 0
 kinematic_role = "theta1"
 # Mathematical angle corresponding to the configured center/zero reference.
 theta_zero_deg = 0.0
-# Provisional home angle for this joint.
+# Provisional mathematical home angle for this joint.
 theta_home_deg = 0.0
 # Provisional minimum safe mathematical angle.
 theta_min_deg = -90.0
@@ -56,25 +60,34 @@ theta_min_deg = -90.0
 theta_max_deg = 90.0
 # Direction sign from mathematical angle to servo pulse change.
 direction = 1
-# Pulse width corresponding to the zero/center position.
+# Pulse width corresponding to the mathematical zero/center position.
 pulse_center_us = 1500
 # Product-sheet endpoint: 0 degrees at 500 us for the 270 degree profile.
-# The hardware sink still enforces defaults.pulse_initial_safe_min_us.
+# The hardware sink also enforces defaults.pulse_initial_safe_min_us.
 pulse_min_us = 500
 # Product-sheet endpoint: 270 degrees at 2500 us for the 270 degree profile.
-# The hardware sink still enforces defaults.pulse_initial_safe_max_us.
+# The hardware sink also enforces defaults.pulse_initial_safe_max_us.
 pulse_max_us = 2500
-# Conversion factor from degrees to pulse microseconds for this joint.
+# Conversion factor from mathematical degrees to pulse microseconds for this joint.
 us_per_degree = 7.4074074074
-# Marks that this joint's values must be measured on the real robot.
+# Initial angle used by the verified manual Robot-Controller configuration.
+controller_initial_angle_deg = 20
+# Controller command-angle limits used during the physical pose recording.
+controller_angle_min_deg = 0
+controller_angle_max_deg = 130
+# Legacy controller mapping endpoints and neutral pulse.
+controller_pulse_min_us = 732.421875
+neutral_pulse_us = 1831.0546875
+controller_pulse_max_us = 2929.6875
+# Marks that this joint's mathematical values must still be measured on the real robot.
 requires_physical_calibration = true
 # Extra calibration note for this joint.
-notes = "500-2500 us and 1500 us neutral are product-sheet values. Mathematical zero, direction, and mechanical stops still require measurement."
+notes = "The manual controller mapping and named-pose pulses are recorded. Mathematical zero, direction, and assembled mechanical limits still require link-angle measurement."
 
 [joints.J2_shoulder]
 # Physical function of this joint.
 function = "shoulder"
-# Servo model/type currently assumed for this joint.
+# Servo model/type currently installed for this joint.
 servo_type = "Miuzei_DS3218_20kg_270_degree"
 source_files = ["Bauteil_007.pdf", "Bauteil_008.pdf", "Bauteil_009.pdf"]
 # PCA9685 output channel connected to this servo.
@@ -83,7 +96,7 @@ pca9685_channel = 2
 kinematic_role = "theta2"
 # Mathematical angle corresponding to the configured center/zero reference.
 theta_zero_deg = 0.0
-# Provisional home angle for this joint.
+# Provisional mathematical home angle for this joint.
 theta_home_deg = -100.0
 # Provisional minimum safe mathematical angle.
 theta_min_deg = -135.0
@@ -91,23 +104,32 @@ theta_min_deg = -135.0
 theta_max_deg = 135.0
 # Direction sign from mathematical angle to servo pulse change.
 direction = 1
-# Pulse width corresponding to the zero/center position.
+# Pulse width corresponding to the mathematical zero/center position.
 pulse_center_us = 1500
 # Product-sheet minimum pulse width.
 pulse_min_us = 500
 # Product-sheet maximum pulse width.
 pulse_max_us = 2500
-# Conversion factor from degrees to pulse microseconds for this joint.
+# Conversion factor from mathematical degrees to pulse microseconds for this joint.
 us_per_degree = 7.4074074074
-# Marks that this joint's values must be measured on the real robot.
+# Initial angle used by the verified manual Robot-Controller configuration.
+controller_initial_angle_deg = 83
+# Controller command-angle limits used during the physical pose recording.
+controller_angle_min_deg = 50
+controller_angle_max_deg = 95
+# Legacy controller mapping endpoints and neutral pulse.
+controller_pulse_min_us = 732.421875
+neutral_pulse_us = 1831.0546875
+controller_pulse_max_us = 2929.6875
+# Marks that this joint's mathematical values must still be measured on the real robot.
 requires_physical_calibration = true
 # Extra calibration note for this joint.
-notes = "500-2500 us and 1500 us neutral are product-sheet values. Ceiling-mount mathematical zero, direction, and mechanical stops still require measurement."
+notes = "The manual controller mapping and named-pose pulses are recorded. Ceiling-mount mathematical zero, direction, and assembled mechanical limits still require link-angle measurement."
 
 [joints.J3_elbow]
 # Physical function of this joint.
 function = "elbow"
-# Servo model/type currently assumed for this joint.
+# Servo model/type currently installed for this joint.
 servo_type = "Miuzei_DS3218_20kg_270_degree"
 source_files = ["Bauteil_007.pdf", "Bauteil_008.pdf", "Bauteil_009.pdf"]
 # PCA9685 output channel connected to this servo.
@@ -116,7 +138,7 @@ pca9685_channel = 4
 kinematic_role = "theta3"
 # Mathematical angle corresponding to the configured center/zero reference.
 theta_zero_deg = 90.0
-# Provisional home angle for this joint.
+# Provisional mathematical home angle for this joint.
 theta_home_deg = 90.0
 # Provisional minimum safe mathematical angle.
 theta_min_deg = 0.0
@@ -124,32 +146,41 @@ theta_min_deg = 0.0
 theta_max_deg = 180.0
 # Direction sign from mathematical angle to servo pulse change.
 direction = 1
-# Pulse width corresponding to the zero/center position.
+# Pulse width corresponding to the mathematical zero/center position.
 pulse_center_us = 1500
 # Product-sheet minimum pulse width.
 pulse_min_us = 500
 # Product-sheet maximum pulse width.
 pulse_max_us = 2500
-# Conversion factor from degrees to pulse microseconds for this joint.
+# Conversion factor from mathematical degrees to pulse microseconds for this joint.
 us_per_degree = 7.4074074074
-# Marks that this joint's values must be measured on the real robot.
+# Initial angle used by the verified manual Robot-Controller configuration.
+controller_initial_angle_deg = 115
+# Controller command-angle limits used during the physical pose recording.
+controller_angle_min_deg = 65
+controller_angle_max_deg = 150
+# Legacy controller mapping endpoints and neutral pulse.
+controller_pulse_min_us = 732.421875
+neutral_pulse_us = 1831.0546875
+controller_pulse_max_us = 2929.6875
+# Marks that this joint's mathematical values must still be measured on the real robot.
 requires_physical_calibration = true
 # Extra calibration note for this joint.
-notes = "500-2500 us and 1500 us neutral are product-sheet values. Verify the side-view angle zero, direction, and mechanical stops."
+notes = "The manual controller mapping and named-pose pulses are recorded. Verify the side-view mathematical angle zero, direction, and assembled mechanical stops."
 
 [joints.J4_wrist]
 # Physical function of this joint.
 function = "wrist_pitch"
-# Four-wire analog-feedback servo used for Schwenker 3 / wrist pitch.
-servo_type = "B2122_analog_feedback_120_degree"
-source_files = ["Bauteil_010.pdf", "Bauteil_002.pdf"]
+# Three-wire MG995 installed as the wrist servo in the verified controller assignment.
+servo_type = "MG995"
+source_files = ["Bauteil_004.pdf", "Bauteil_005.pdf", "Bauteil_006.pdf", "Bauteil_002.pdf"]
 # PCA9685 output channel connected to this servo.
-pca9685_channel = 8
+pca9685_channel = 6
 # Kinematic angle represented by this joint.
 kinematic_role = "theta4"
 # Mathematical angle corresponding to the configured center/zero reference.
 theta_zero_deg = 0.0
-# Provisional home angle for this joint.
+# Provisional mathematical home angle for this joint.
 theta_home_deg = 0.0
 # Provisional minimum safe mathematical angle.
 theta_min_deg = -60.0
@@ -157,53 +188,70 @@ theta_min_deg = -60.0
 theta_max_deg = 60.0
 # Direction sign from mathematical angle to servo pulse change.
 direction = 1
-# Pulse width corresponding to the zero/center position.
+# Pulse width corresponding to the mathematical zero/center position.
 pulse_center_us = 1500
-# Product-sheet minimum for approximately 120 degrees total rotation.
+# Provisional electrical minimum retained for kinematic conversion.
 pulse_min_us = 500
-# Product-sheet maximum for approximately 120 degrees total rotation.
+# Provisional electrical maximum retained for kinematic conversion.
 pulse_max_us = 2500
-# Conversion factor from degrees to pulse microseconds for this joint.
+# Provisional conversion factor based on approximately 120 degrees over 500-2500 us.
 us_per_degree = 16.6666666667
-# Marks that this joint's values must be measured on the real robot.
+# Initial angle used by the verified manual Robot-Controller configuration.
+controller_initial_angle_deg = 36
+# Controller command-angle limits used during the physical pose recording.
+controller_angle_min_deg = 0
+controller_angle_max_deg = 75
+# Legacy controller mapping endpoints and neutral pulse.
+controller_pulse_min_us = 732.421875
+neutral_pulse_us = 1831.0546875
+controller_pulse_max_us = 2929.6875
+# Marks that this joint's mathematical values must still be measured on the real robot.
 requires_physical_calibration = true
 # Extra calibration note for this joint.
-notes = "The sheet states approximately 120 degrees over 500-2500 us. Verify feedback wiring, mathematical zero, direction, and mechanical stops."
+notes = "The installed MG995 and channel 6 assignment are verified. The supplied MG995 sheets disagree on travel, so mathematical zero, travel, and pulse slope still require physical calibration."
 
 [joints.J5_gripper]
 # Physical function of this joint/servo.
 function = "gripper"
-# Three-wire MG995 listed as Servomotor 4 / Greifer in the schematic.
-servo_type = "MG995"
-source_files = ["Bauteil_004.pdf", "Bauteil_005.pdf", "Bauteil_006.pdf", "Bauteil_002.pdf"]
+# Four-wire B2122 analog-feedback servo installed as the gripper in the verified controller assignment.
+servo_type = "B2122_analog_feedback_120_degree"
+source_files = ["Bauteil_010.pdf", "Bauteil_002.pdf"]
 # PCA9685 output channel connected to the gripper servo.
-pca9685_channel = 6
+pca9685_channel = 8
 # Kinematic command represented by this servo.
 kinematic_role = "gripper_command"
-# Gripper is normally controlled by calibrated pulses, not IK angle.
-# Placeholder mathematical zero value for the gripper.
+# Gripper is controlled by the recorded controller command-angle mapping.
 theta_zero_deg = 0.0
-# Placeholder home value for the gripper.
+# Recorded home/open command for the gripper.
 theta_home_deg = 0.0
-# Placeholder minimum gripper command value.
+# Recorded minimum gripper command value.
 theta_min_deg = 0.0
-# Placeholder maximum gripper command value.
-theta_max_deg = 1.0
+# Recorded maximum gripper command value.
+theta_max_deg = 90.0
 # Direction sign from command value to servo pulse change.
 direction = 1
-# Pulse width corresponding to the gripper center/neutral position.
-pulse_center_us = 1500
-# The supplied MG995 sheets state a 20 ms / 50 Hz period and 120 degree
-# rotation but do not state pulse endpoints. Retain conservative placeholders.
-pulse_min_us = 1000
-pulse_max_us = 2000
-# Placeholder conversion factor; gripper should use calibrated open/close pulses instead.
-us_per_degree = 1.0
+# Pulse width corresponding to the open/zero command.
+pulse_center_us = 732.421875
+# Recorded open pulse width.
+pulse_min_us = 732.421875
+# Recorded closed pulse width.
+pulse_max_us = 1831.0546875
+# Conversion factor for the controller's 0-90 degree gripper command range.
+us_per_degree = 12.20703125
+# Initial angle used by the verified manual Robot-Controller configuration.
+controller_initial_angle_deg = 0
+# Controller command-angle limits used during the physical pose recording.
+controller_angle_min_deg = 0
+controller_angle_max_deg = 90
+# Legacy controller mapping endpoints and neutral pulse.
+controller_pulse_min_us = 732.421875
+neutral_pulse_us = 1831.0546875
+controller_pulse_max_us = 2929.6875
 # Pulse width used to open the gripper.
-pulse_open_us = 1200
+pulse_open_us = 732.421875
 # Pulse width used to close the gripper.
-pulse_closed_us = 1800
-# Marks that gripper values must be measured on the real robot.
-requires_physical_calibration = true
+pulse_closed_us = 1831.0546875
+# The electrical command mapping is recorded; jaw width and gripping force still require object tests.
+requires_physical_calibration = false
 # Extra calibration note for the gripper.
-notes = "The MG995 sheet does not state endpoint pulses. The 1000-2000 us bounds and open/closed commands remain placeholders requiring measurement."
+notes = "The B2122 channel assignment and 0/90 degree open/closed controller commands were recorded. Verify closed jaw width, object retention, and feedback wiring separately."
