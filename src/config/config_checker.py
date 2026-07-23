@@ -9,6 +9,7 @@ from typing import Any
 from config.config_loader import CONFIG_FILES, DEFAULT_CONFIG_DIR
 from kinematics.forward_kinematics import calculate_gripper_center
 from kinematics.inverse_kinematics import calculate_angles
+from kinematics.singularity_policy import singularity_policy_from_settings
 
 REQUIRED_KINEMATIC_ROLES = {
     "theta1",
@@ -266,6 +267,19 @@ class ConfigurationChecker:
             self.ok(
                 "kinematics_settings.toml contains all required "
                 "target_offsets fields"
+            )
+
+    def check_singularity_policy(self) -> None:
+        """Validate planning thresholds for singular configurations."""
+        settings = self.configs["kinematics_settings"]
+        try:
+            singularity_policy_from_settings(settings)
+        except (KeyError, TypeError, ValueError) as error:
+            self.fail(f"Invalid validation.singularity policy: {error}")
+        else:
+            self.ok(
+                "kinematics_settings.toml contains a valid "
+                "validation.singularity policy"
             )
 
     def check_servo_configuration(self) -> None:
@@ -1529,6 +1543,10 @@ class ConfigurationChecker:
             (
                 "target-offset validation",
                 self.check_target_offsets,
+            ),
+            (
+                "singularity-policy validation",
+                self.check_singularity_policy,
             ),
             (
                 "servo validation",
