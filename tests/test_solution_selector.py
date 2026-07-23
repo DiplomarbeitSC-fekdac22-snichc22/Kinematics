@@ -80,9 +80,8 @@ def test_distance_beats_later_quality_criteria(
         monkeypatch,
         {
             1.0: {
-                "geometric_status": "singular",
-                "rank": 3,
-                "inverse_condition_number": 0.0,
+                "conditioning_status": "warning",
+                "inverse_condition_number": 0.03,
                 "joint_limit_margin": 0.1,
                 "pulse_limit_margin": 0.1,
             },
@@ -103,6 +102,29 @@ def test_distance_beats_later_quality_criteria(
 
     assert selected.solution is close
     assert selected.joint_distance_deg == pytest.approx(1.0)
+
+
+def test_policy_validity_beats_distance(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _install_analysis_stub(
+        monkeypatch,
+        {
+            1.0: {"joint_limit_margin": 0.04},
+            -20.0: {"joint_limit_margin": 0.20},
+        },
+    )
+    close_below_policy_margin = _solution("elbow_forward", 1.0)
+    far_policy_valid = _solution("elbow_back", -20.0)
+
+    selected = selector.select_continuous_solution(
+        [close_below_policy_margin, far_policy_valid],
+        CURRENT_JOINT_STATE,
+    )
+
+    assert selected.solution is far_policy_valid
+    assert selected.valid
+    assert not selected.policy_rejection_reasons
 
 
 def test_singularity_quality_beats_limit_margins_and_preference(
