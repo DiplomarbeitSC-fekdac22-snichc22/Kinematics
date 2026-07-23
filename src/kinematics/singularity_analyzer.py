@@ -29,7 +29,9 @@ def _normalized_interval_margin(value: float, minimum: float, maximum: float) ->
 
 def analyze_configuration(
         joint_angles_deg: dict[str, float],
-        config_dir: Path | str = DEFAULT_CONFIG_DIR
+        config_dir: Path | str = DEFAULT_CONFIG_DIR,
+        *,
+        elbow_relative_sign: float | None = None,
 ) -> ConfigurationAnalysis:
     """Analyze one J1-J4 configuration without moving hardware."""
     config_dir = Path(config_dir)
@@ -37,7 +39,11 @@ def analyze_configuration(
     servo = load_config("servo_calibration.toml", config_dir)
     analysis_config = load_config("singularity_analysis.toml", config_dir)
 
-    jacobian_result = calculate_jacobian(joint_angles_deg, config_dir)
+    jacobian_result = calculate_jacobian(
+        joint_angles_deg,
+        config_dir,
+        elbow_relative_sign=elbow_relative_sign,
+    )
 
     links = geometry["link_lengths_mm"]
     l1 = float(links["L1_shoulder_to_elbow"])

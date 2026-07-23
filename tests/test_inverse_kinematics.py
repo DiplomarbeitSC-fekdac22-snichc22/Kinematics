@@ -1,5 +1,6 @@
 import sys
 import unittest
+from math import degrees
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -10,6 +11,7 @@ from kinematics.inverse_kinematics import (
     calculate_angles,
 )
 from kinematics.forward_kinematics import calculate_gripper_center
+from kinematics.singularity_analyzer import analyze_configuration
 
 
 class InverseKinematicsRegressionTests(unittest.TestCase):
@@ -82,6 +84,27 @@ class InverseKinematicsRegressionTests(unittest.TestCase):
                 for reason in elbow_forward["reason_groups"]["joint_limits"]
             )
         )
+
+    def test_singularity_analysis_uses_each_candidate_branch_sign(self) -> None:
+        for solution in calculate_angle_solutions(230.0, 180.0, 60.0):
+            angles = solution["angles_deg"]
+            joint_angles = {
+                "J1_base": angles["base"],
+                "J2_shoulder": angles["shoulder"],
+                "J3_elbow": angles["elbow"],
+                "J4_wrist": angles["wrist"],
+            }
+
+            analysis = analyze_configuration(
+                joint_angles,
+                elbow_relative_sign=solution["elbow_relative_sign"],
+            )
+
+            self.assertAlmostEqual(
+                degrees(analysis.jacobian.elbow_relative_angle_rad),
+                solution["elbow_relative_angle_deg"],
+                places=7,
+            )
 
     def test_current_pick_target_is_reachable(self) -> None:
         result = calculate_angles(230.0, 180.0, 60.0)

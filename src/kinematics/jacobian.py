@@ -24,7 +24,9 @@ def _angle_for_role_rad(
 
 def calculate_jacobian(
         joint_angles_deg: dict[str, float],
-        config_dir: Path | str = DEFAULT_CONFIG_DIR
+        config_dir: Path | str = DEFAULT_CONFIG_DIR,
+        *,
+        elbow_relative_sign: float | None = None,
 ) -> JacobianResult:
     """Calculate the analytical and task-scaled 4x4 Jacobians.
 
@@ -54,7 +56,15 @@ def calculate_jacobian(
     theta4 = _angle_for_role_rad(joint_angles_deg, servo, "theta4")
 
     # Calculations
-    elbow_relative_sign = float(settings.get("fk", {}).get("elbow_relative_sign", -1.0))
+    if elbow_relative_sign is None:
+        elbow_relative_sign = float(
+            settings.get("fk", {}).get("elbow_relative_sign", -1.0)
+        )
+    else:
+        elbow_relative_sign = float(elbow_relative_sign)
+    if elbow_relative_sign not in {-1.0, 1.0}:
+        raise ValueError("elbow_relative_sign must be -1.0 or 1.0")
+
     delta = elbow_relative_sign * (pi - theta3)
 
     forearm_angle = theta2 + delta
