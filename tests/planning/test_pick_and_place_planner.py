@@ -63,4 +63,7 @@ def test_hardware_sink_marker_enables_strict_prevalidation() -> None:
 
     assert not success
     assert sink.commands == []
-    assert controller.last_planning_failure.code == "HARDWARE_SAFE_LIMIT_VIOLATION"
+    assert (
+        controller.last_planning_failure.code
+        == "PHYSICAL_CALIBRATION_REQUIRED"
+    )

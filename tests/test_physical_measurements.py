@@ -71,7 +71,7 @@ class PhysicalMeasurementsConfigTests(unittest.TestCase):
         self.assertEqual(drop_off["z_direction"], "right")
         self.assertNotIn("requires_x_measurement", drop_off)
 
-    def test_servo_sheet_pulses_and_schematic_channels_are_recorded(self) -> None:
+    def test_servo_sheets_and_verified_controller_channels_are_recorded(self) -> None:
         joints = self.config["servo_calibration"]["joints"]
 
         for name in ("J1_base", "J2_shoulder", "J3_elbow"):
@@ -90,7 +90,7 @@ class PhysicalMeasurementsConfigTests(unittest.TestCase):
             )
 
         wrist = joints["J4_wrist"]
-        self.assertEqual(wrist["pca9685_channel"], 8)
+        self.assertEqual(wrist["pca9685_channel"], 6)
         self.assertEqual(
             (
                 wrist["pulse_min_us"],
@@ -105,11 +105,14 @@ class PhysicalMeasurementsConfigTests(unittest.TestCase):
         )
 
         gripper = joints["J5_gripper"]
-        self.assertEqual(gripper["pca9685_channel"], 6)
-        self.assertEqual(gripper["servo_type"], "MG995")
+        self.assertEqual(gripper["pca9685_channel"], 8)
+        self.assertEqual(
+            gripper["servo_type"],
+            "B2122_analog_feedback_120_degree",
+        )
         self.assertEqual(
             (gripper["pulse_min_us"], gripper["pulse_max_us"]),
-            (1000, 2000),
+            (732.421875, 1831.0546875),
         )
 
     def test_vl53l4cd_webots_model_matches_product_sheet(self) -> None:

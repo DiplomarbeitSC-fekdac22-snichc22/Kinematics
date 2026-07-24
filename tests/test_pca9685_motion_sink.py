@@ -40,8 +40,8 @@ def test_uses_existing_robot_controller_channel_mapping() -> None:
         "J1_base": 0,
         "J2_shoulder": 2,
         "J3_elbow": 4,
-        "J4_wrist": 8,
-        "J5_gripper": 6,
+        "J4_wrist": 6,
+        "J5_gripper": 8,
     }
 
     assert pca.frequency == 50
@@ -62,13 +62,13 @@ def test_send_converts_microseconds_and_writes_channels() -> None:
     # We compute a 12-bit PCA9685 count (0..4095) and then
     # scale it to CircuitPython’s 16-bit duty-cycle space.
     assert pca.channels[0].duty_cycle == 307 << 4
-    assert pca.channels[6].duty_cycle == 246 << 4
+    assert pca.channels[8].duty_cycle == 246 << 4
 
     # Unmentioned channels remain unchanged
     assert pca.channels[2].duty_cycle == 0
 
 
-def test_invalid_pulse_does_not_particularly_update_outputs() -> None:
+def test_invalid_pulse_does_not_partially_update_outputs() -> None:
     sink, pca = make_sink()
 
     pca.channels[0].duty_cycle = 1234
@@ -78,7 +78,7 @@ def test_invalid_pulse_does_not_particularly_update_outputs() -> None:
             name="unsafe",
             pulses_us={
                 "J1_base": 1500,
-                "J2_shoulder": 999,
+                "J2_shoulder": 731,
             }
         ))
 
@@ -87,7 +87,7 @@ def test_invalid_pulse_does_not_particularly_update_outputs() -> None:
     assert pca.channels[2].duty_cycle == 0
 
 
-@pytest.mark.parametrize("pulse_us", [999, 2001])
+@pytest.mark.parametrize("pulse_us", [731, 2501])
 def test_rejects_pulses_outside_safe_range(pulse_us: int) -> None:
     sink, _ = make_sink()
 

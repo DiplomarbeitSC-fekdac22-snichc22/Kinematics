@@ -166,11 +166,17 @@ def test_coordinate_frame_round_trip() -> None:
 def test_webots_joint_and_gripper_mapping() -> None:
     robot = FakeRobot()
     sink = WebotsMotionSink(robot, config_dir=CONFIG_DIR)
+    open_pulse = int(
+        load_config(
+            "poses.toml",
+            CONFIG_DIR,
+        )["gripper_commands"]["open_pulse_us"]
+    )
 
     sink.send(
         MotionCommand(
             name="mapping_test",
-            pulses_us={"J5_gripper": 1200},
+            pulses_us={"J5_gripper": open_pulse},
             joint_angles_deg={
                 "J1_base": 30.0,
                 "J2_shoulder": 90.0,
@@ -209,11 +215,20 @@ def test_webots_initializes_valid_targets_before_its_first_step() -> None:
 def test_webots_can_invert_recorded_pwm_when_angles_are_absent() -> None:
     robot = FakeRobot()
     sink = WebotsMotionSink(robot, config_dir=CONFIG_DIR)
+    closed_pulse = int(
+        load_config(
+            "poses.toml",
+            CONFIG_DIR,
+        )["gripper_commands"]["closed_pulse_us"]
+    )
 
     sink.send(
         MotionCommand(
             name="recorded_pwm",
-            pulses_us={"J1_base": 1500, "J5_gripper": 1800},
+            pulses_us={
+                "J1_base": 1500,
+                "J5_gripper": closed_pulse,
+            },
         )
     )
 
@@ -225,11 +240,17 @@ def test_webots_can_invert_recorded_pwm_when_angles_are_absent() -> None:
 def test_gripper_accepts_stable_object_contact_before_fully_closed() -> None:
     robot = ContactFakeRobot()
     sink = WebotsMotionSink(robot, config_dir=CONFIG_DIR)
+    closed_pulse = int(
+        load_config(
+            "poses.toml",
+            CONFIG_DIR,
+        )["gripper_commands"]["closed_pulse_us"]
+    )
 
     sink.send(
         MotionCommand(
             name="close_gripper",
-            pulses_us={"J5_gripper": 1800},
+            pulses_us={"J5_gripper": closed_pulse},
         )
     )
 
@@ -240,11 +261,17 @@ def test_gripper_accepts_stable_object_contact_before_fully_closed() -> None:
 def test_gripper_accepts_a_functional_opening_below_nominal_stop() -> None:
     robot = ShortOpenFakeRobot()
     sink = WebotsMotionSink(robot, config_dir=CONFIG_DIR)
+    open_pulse = int(
+        load_config(
+            "poses.toml",
+            CONFIG_DIR,
+        )["gripper_commands"]["open_pulse_us"]
+    )
 
     sink.send(
         MotionCommand(
             name="open_gripper",
-            pulses_us={"J5_gripper": 1200},
+            pulses_us={"J5_gripper": open_pulse},
         )
     )
 

@@ -92,3 +92,53 @@ def test_pre_set_emergency_stop_sends_no_frames() -> None:
 
     assert recorder.commands == []
     assert executor.last_pulses_us == {"J1_base": 1000}
+
+
+def test_real_hardware_requires_known_initial_pulse_for_each_joint() -> None:
+    class HardwareMarkedRecordingSink(RecordingMotionSink):
+        requires_hardware_safe_prevalidation = True
+
+    recorder = HardwareMarkedRecordingSink()
+    executor = MotionExecutor(
+        recorder,
+        initial_pulses_us={"J1_base": 1000},
+        config_dir=CONFIG_DIR,
+    )
+
+    with pytest.raises(ValueError, match="initial pulse.*J2_shoulder"):
+        executor.send(
+            type(motion_command())(
+                name="move_two_joints",
+                pulses_us={
+                    "J1_base": 1020,
+                    "J2_shoulder": 1200,
+                },
+            )
+        )
+
+    assert recorder.commands == []
+
+
+def test_real_hardware_requires_known_initial_pulse_for_each_joint() -> None:
+    class HardwareMarkedRecordingSink(RecordingMotionSink):
+        requires_hardware_safe_prevalidation = True
+
+    recorder = HardwareMarkedRecordingSink()
+    executor = MotionExecutor(
+        recorder,
+        initial_pulses_us={"J1_base": 1000},
+        config_dir=CONFIG_DIR,
+    )
+
+    with pytest.raises(ValueError, match="initial pulse.*J2_shoulder"):
+        executor.send(
+            type(motion_command())(
+                name="move_two_joints",
+                pulses_us={
+                    "J1_base": 1020,
+                    "J2_shoulder": 1200,
+                },
+            )
+        )
+
+    assert recorder.commands == []

@@ -53,16 +53,57 @@ def test_all_waypoints_contain_stored_validation_results() -> None:
     assert any("effective hardware-safe range" in warning for warning in result.warnings)
 
 
+def test_named_pose_uses_physically_recorded_pulses() -> None:
+    planner = PickAndPlacePlanner(
+        enforce_hardware_safe_limits=False,
+        singularity_policy=PERMISSIVE_SINGULARITY_POLICY,
+    )
+
+    result = planner.plan(TargetPose(230.0, 180.0, 60.0))
+
+    assert isinstance(result, MotionPlan)
+    ready = planner.poses["poses"]["ready"]["recorded_pulses_us"]
+    assert result.motion_for("ready").command.pulses_us == {
+        joint_name: round(float(pulse_us))
+        for joint_name, pulse_us in ready.items()
+    }
+
+
+def test_plans_one_manual_cartesian_move_from_recorded_pose() -> None:
+    planner = PickAndPlacePlanner(
+        enforce_hardware_safe_limits=False,
+        singularity_policy=PERMISSIVE_SINGULARITY_POLICY,
+    )
+    home = {
+        key: float(value)
+        for key, value in planner.poses["poses"]["home"].items()
+        if key.startswith("J")
+    }
+
+    result = planner.plan_cartesian_move(
+        TargetPose(230.0, 180.0, 60.0),
+        home,
+    )
+
+    assert not isinstance(result, PlanningFailure)
+    assert result.command.name == "move_to_coordinates"
+    assert result.command.gripper_center_mm == {
+        "x_mm": 230.0,
+        "y_mm": 180.0,
+        "z_mm": 60.0,
+    }
+
+
 def test_strict_hardware_preflight_rejects_current_provisional_pose() -> None:
     result = PickAndPlacePlanner(
         singularity_policy=PERMISSIVE_SINGULARITY_POLICY,
     ).plan(TargetPose(230.0, 180.0, 60.0))
 
     assert isinstance(result, PlanningFailure)
-    assert result.waypoint == "ready"
-    assert result.code == "HARDWARE_SAFE_LIMIT_VIOLATION"
+    assert result.waypoint == "plan"
+    assert result.code == "PHYSICAL_CALIBRATION_REQUIRED"
     assert "J2_shoulder" in result.message
-    assert "1000-2000 us" in result.message
+    assert "hardware_cartesian_motion_enabled is false" in result.message
 
 
 def test_invalid_named_pose_reports_joint_limit_code() -> None:
