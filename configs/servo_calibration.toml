@@ -5,13 +5,17 @@
 # Measure physical link angles before treating controller-angle values as kinematic calibration.
 
 # Version of this configuration file format.
-schema_version = "2.2"
+schema_version = "2.3"
 # Unit used for joint-angle values.
 units_angle = "deg"
 # Unit used for servo pulse-width values.
 units_pulse = "us"
 # Safety status of this calibration data.
 calibration_status = "controller_mapping_recorded_kinematic_angles_provisional"
+# Explicit interlock for real XYZ and pick-and-place commands. Change this only
+# after J1-J4 have measured mathematical angle/pulse calibration, assembled
+# limits, and a successful low-speed commissioning test.
+hardware_cartesian_motion_enabled = false
 
 [defaults]
 # PWM frequency used for all hobby servo channels.

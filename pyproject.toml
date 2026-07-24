@@ -55,10 +55,13 @@ Homepage = "https://github.com/DiplomarbeitSC-fekdac22-snichc22/Kinematics"
 Repository = "https://github.com/DiplomarbeitSC-fekdac22-snichc22/Kinematics.git"
 Issues = "https://github.com/DiplomarbeitSC-fekdac22-snichc22/Kinematics/issues"
 
+[project.scripts]
+robot-arm = "main:main"
+
 
 [tool.setuptools]
 package-dir = { "" = "src" }
-py-modules = ["api"]
+py-modules = ["api", "main"]
 
 
 [tool.setuptools.packages.find]
