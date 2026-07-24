@@ -19,7 +19,7 @@ _Last reviewed: 2026-07-16. This is a readiness estimate, not a test-coverage me
 | Motion interpolation and cancellation          |      50% | Frame generator and emergency-stop-aware executor implemented; more tests are needed |
 | Physical calibration and real-robot validation |      15% | Servo zeros, directions, limits, poses and gripper pulses are still provisional      |
 
-**Current branch blockers:** `configs/kinematics_settings.toml` contains a duplicate `[motion_interpolation]` table, and the state machine expects `target_offsets.grasp_depth_offset_mm`, which is not yet configured. The full test and dry-run flow is therefore not release-ready.
+**Current physical-hardware blocker:** the PCA9685 channel assignment and several named-pose pulses are recorded, but the mathematical angle-to-pulse calibration for J1-J4 is still provisional. Arbitrary Cartesian hardware motion is therefore interlocked; dry runs and guarded playback of recorded poses remain available.
 
 ## Purpose
 
@@ -168,6 +168,84 @@ Available motion sinks:
 | `Pca9685MotionSink` | Send verified pulse widths to the real servo driver |
 | `MotionExecutor` | Interpolate PWM frames and support cancellation around another sink |
 
+### Manual operation without a backend
+
+Installing the project creates the `robot-arm` command. Every movement is a
+dry run unless `--hardware` is supplied.
+
+```bash
+# Show channel mapping, recorded poses, and calibration blockers
+robot-arm check
+
+# Inspect a recorded pose without moving hardware
+robot-arm pose ready
+
+# Plan one gripper-centre move
+robot-arm move 230 180 60 --from-pose home
+
+# Omit X Y Z to enter them interactively
+robot-arm move --from-pose home
+```
+
+Recorded poses can be commissioned before the mathematical calibration is
+complete because they use the measured pulse values in `poses.toml`:
+
+```bash
+robot-arm pose ready --hardware --from-pose home
+```
+
+The physical arm must actually match `--from-pose` before servo outputs are
+enabled. The command requires a typed confirmation, returns to the declared
+start pose, and waits for separate servo power to be switched off before it
+disables PCA9685 outputs.
+
+Real XYZ or pick-and-place commands remain blocked until J1-J4 have measured
+angle/pulse fits and assembled limits, every corresponding
+`requires_physical_calibration` value is `false`, and
+`hardware_cartesian_motion_enabled = true` has been set in
+`configs/servo_calibration.toml`.
+
+```bash
+robot-arm move 230 180 60 --hardware --from-pose home
+robot-arm pick 230 180 60 --hardware --from-pose home
+```
+
+For persistent open-loop control without a backend, start one control session:
+
+```bash
+robot-arm control --hardware
+```
+
+After the one-time `MOVE` confirmation, the session immediately commands the
+recorded `home` PWM. The PCA9685 repeats the selected PWM at 50 Hz until another
+command is entered:
+
+```text
+pose ready
+pose deposit
+pwm 977 1743 2134 1172 732
+status
+home
+release
+```
+
+The five direct PWM values are ordered as `J1_base J2_shoulder J3_elbow
+J4_wrist J5_gripper`. Every value is checked against the configured hardware
+range, then written directly without trajectory interpolation. An invalid
+command leaves the previous PWM active. `release`, end-of-input, or `Ctrl+C`
+disables all PCA9685 outputs and ends the session.
+
+Once Cartesian hardware motion is calibrated and enabled, the same session
+also accepts:
+
+```text
+move 230 180 60
+```
+
+This mode tracks the last commanded state, not the measured physical state.
+If a servo stalls, slips, loses power, or is moved externally, the assumption
+is no longer valid. Enter `home` to command the known PWM again.
+
 [//]: # (### Run Webots)
 
 [//]: # ()
@@ -222,6 +300,10 @@ RobotController
 
 Do not use the hardware sink until every value marked as provisional has been measured. Keep a hardware emergency stop that cuts servo power independently of Python and the Raspberry Pi.
 
+The PCA9685 logic side uses the Raspberry Pi's default I2C pins and address
+`0x40`. Power the servos from their separate fused supply, not from the
+Raspberry Pi. Only one controller may drive the PCA9685 at a time.
+
 ## Configuration
 
 | File | Purpose |
@@ -259,7 +341,7 @@ tools/         Workspace exploration and visualization
 - **Motion:** trajectory/executor tests · acceleration profile · collision-aware path planning
 - **Safety:** hardware E-stop integration · limit/home switches · fault recovery
 - **Sensors:** camera target interface · ToF approach feedback · grasp confirmation · closed-loop correction
-- **Engineering:** CI workflow · production entry point · deployment service · release/versioning process
+- **Engineering:** CI workflow · backend/service integration · deployment service · release/versioning process
 
 ## Safety
 
