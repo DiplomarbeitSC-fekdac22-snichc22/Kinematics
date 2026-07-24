@@ -41,6 +41,9 @@ _IK_RESULT_KEYS_BY_ROLE = {
     "theta3": "elbow",
     "theta4": "wrist",
 }
+_CARTESIAN_KINEMATIC_ROLES = frozenset(
+    {"theta1", "theta2", "theta3", "theta4"}
+)
 
 
 def _failure(
@@ -99,6 +102,37 @@ class PickAndPlacePlanner:
             poses_config=self.poses,
         )
 
+    def _hardware_calibration_reasons(self) -> tuple[str, ...]:
+        if not self.enforce_hardware_safe_limits:
+            return ()
+
+        reasons: list[str] = []
+        if not bool(
+            self.servo_calibration.get(
+                "hardware_cartesian_motion_enabled",
+                False,
+            )
+        ):
+            reasons.append(
+                "hardware_cartesian_motion_enabled is false"
+            )
+
+        for joint_name, joint in self.servo_calibration["joints"].items():
+            if (
+                joint.get("kinematic_role")
+                in _CARTESIAN_KINEMATIC_ROLES
+                and bool(
+                    joint.get(
+                        "requires_physical_calibration",
+                        True,
+                    )
+                )
+            ):
+                reasons.append(
+                    f"{joint_name} still requires physical calibration"
+                )
+        return tuple(reasons)
+
     def plan(self, target: TargetPose) -> MotionPlan | PlanningFailure:
         """Return a complete plan or one structured rejection."""
         input_reasons = validate_xyz_values(target)
@@ -111,6 +145,18 @@ class PickAndPlacePlanner:
                 ),
                 "INVALID_CARTESIAN_TARGET",
                 input_reasons,
+            )
+
+        calibration_reasons = self._hardware_calibration_reasons()
+        if calibration_reasons:
+            return _failure(
+                Waypoint(
+                    name="plan",
+                    command_name="plan",
+                    cartesian_target=target,
+                ),
+                "PHYSICAL_CALIBRATION_REQUIRED",
+                calibration_reasons,
             )
 
         try:
@@ -165,6 +211,42 @@ class PickAndPlacePlanner:
             target=target,
             motions=tuple(planned),
             warnings=tuple(plan_warnings),
+        )
+
+    def plan_cartesian_move(
+        self,
+        target: TargetPose,
+        current_joint_angles_deg: dict[str, float],
+        *,
+        waypoint_name: str = "manual_target",
+        command_name: str = "move_to_coordinates",
+    ) -> PlannedMotion | PlanningFailure:
+        """Plan and validate one Cartesian move from a known joint state."""
+        waypoint = Waypoint(
+            name=waypoint_name,
+            command_name=command_name,
+            cartesian_target=target,
+        )
+        calibration_reasons = self._hardware_calibration_reasons()
+        if calibration_reasons:
+            return _failure(
+                waypoint,
+                "PHYSICAL_CALIBRATION_REQUIRED",
+                calibration_reasons,
+            )
+        current_reasons = validate_joint_angles(
+            current_joint_angles_deg,
+            self.servo_calibration,
+        )
+        if current_reasons:
+            return _failure(
+                waypoint,
+                "CURRENT_JOINT_STATE_INVALID",
+                current_reasons,
+            )
+        return self._validate_cartesian_waypoint(
+            waypoint,
+            dict(current_joint_angles_deg),
         )
 
     def _validate_waypoint(
@@ -353,10 +435,46 @@ class PickAndPlacePlanner:
                 joint_reasons,
             )
 
-        pulses, pulse_reasons = convert_joint_angles_to_pwm(
-            joint_angles,
-            self.servo_calibration,
-        )
+        recorded_pulses = pose.get("recorded_pulses_us")
+        if recorded_pulses is None:
+            pulses, pulse_reasons = convert_joint_angles_to_pwm(
+                joint_angles,
+                self.servo_calibration,
+            )
+        elif not isinstance(recorded_pulses, dict):
+            return _failure(
+                waypoint,
+                "INVALID_NAMED_POSE",
+                (
+                    f"Named pose {pose_name!r} has invalid "
+                    "recorded_pulses_us",
+                ),
+            )
+        else:
+            missing_pulses = tuple(
+                sorted(required_joints - recorded_pulses.keys())
+            )
+            if missing_pulses:
+                return _failure(
+                    waypoint,
+                    "INVALID_NAMED_POSE",
+                    (
+                        "Named pose is missing recorded pulses for "
+                        f"{missing_pulses}",
+                    ),
+                )
+            try:
+                pulses = {
+                    joint_name: round(float(recorded_pulses[joint_name]))
+                    for joint_name in required_joints
+                }
+            except (TypeError, ValueError) as exc:
+                return _failure(
+                    waypoint,
+                    "INVALID_NAMED_POSE",
+                    (f"{type(exc).__name__}: {exc}",),
+                )
+            pulse_reasons = ()
         if pulse_reasons:
             return _failure(
                 waypoint,

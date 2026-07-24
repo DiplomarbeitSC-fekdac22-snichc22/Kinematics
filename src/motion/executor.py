@@ -6,6 +6,28 @@ from motion.trajectory import generate_frames
 from state_machine.pick_and_place import MotionCommandSink
 
 
+def _requires_known_initial_state(sink: object) -> bool:
+    """Follow common sink wrappers to find a real hardware boundary"""
+    seen: set[int] = set()
+    current: object | None = sink
+    while current is not None and id(current) not in seen:
+        seen.add(id(current))
+        if bool(
+            getattr(
+                current,
+                "requires_hardware_safe_prevalidation",
+                False,
+            )
+        ):
+            return True
+        current = getattr(
+            current,
+            "sink",
+            getattr(current, "wrapped_sink", None),
+        )
+    return False
+
+
 class MotionCancelled(RuntimeError):
     """Raised when the emergency-stop flag cancels movement."""
 
@@ -53,6 +75,9 @@ class MotionExecutor:
 
         self.frame_interval_s = float(config["step_time_s"])
         self.max_step_us = int(config["max_step_pwm_us"])
+        self._requires_known_initial_state = _requires_known_initial_state(
+            sink
+        )
 
         if not 0.02 <= self.frame_interval_s <= 0.03:
             raise ValueError("Frame interval must be between 0.02 and 0.03 seconds")
@@ -62,6 +87,15 @@ class MotionExecutor:
     def send(self, command) -> None:
         """Send all frames and return only after the target frame."""
         target = dict(command.pulses_us)
+        missing_initial_joints = tuple(
+            sorted(set(target) - set(self.last_pulses_us))
+        )
+        if self._requires_known_initial_state and missing_initial_joints:
+            raise ValueError(
+                "Real hardware motion requires an initial pulse for every "
+                "commanded joint; missing "
+                f"{missing_initial_joints}"
+            )
 
         # A command may change only one joint, such as the gripper.
         start = {
